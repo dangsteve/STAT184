@@ -1,0 +1,114 @@
+---
+title: "Final Project Analysis"
+author: "Steve Dang"
+date: "Due Sunday of Week 14"
+output: html_notebook
+---
+
+# Final Project Analysis
+
+## Introduction
+
+This project analyzes student spending patterns and their relationship to the cost of living across different regions.
+
+```{r Load Data, message=FALSE, warning=FALSE}
+# Libraries
+library(ggplot2)
+library(dplyr)
+library(GGally)
+library(purrr)
+
+# Import student spending data
+spending <- read.csv("https://raw.githubusercontent.com/dangsteve/STAT184/main/student_spending.csv")
+cost_of_living <- read.csv("https://raw.githubusercontent.com/dangsteve/STAT184/main/advisorsmith_cost_of_living_index.csv")
+
+# Inspect datasets
+str(spending)
+summary(spending)
+
+str(cost_of_living)
+summary(cost_of_living)
+```
+
+```{r Load Data, message=FALSE, warning=FALSE}
+# Compute average cost of living
+average_cost_of_living <- cost_of_living %>%
+  summarise(avg_cost_of_living = mean(Cost.of.Living.Index, na.rm = TRUE)) %>%
+  pull(avg_cost_of_living)
+
+# Add average cost of living to the spending dataset
+spending <- spending %>%
+  mutate(average_cost_of_living = average_cost_of_living)
+
+# Create additional variables for analysis
+spending <- spending %>%
+  mutate(
+    total_income = monthly_income + financial_aid,
+    total_spending = (tuition / 4) + housing + food + transportation +
+      books_supplies + entertainment + personal_care +
+      technology + health_wellness + miscellaneous
+  )
+
+# Summarize data by gender
+summary_by_gender <- spending %>%
+  group_by(gender) %>%
+  summarise(
+    mean_income = mean(total_income, na.rm = TRUE),
+    mean_spending = mean(total_spending, na.rm = TRUE),
+    n = n()
+  )
+summary_by_gender
+```
+
+```{r Load Data, message=FALSE, warning=FALSE}
+# Scatter plot of total income vs. total spending
+ggplot(spending, aes(x = total_income, y = total_spending)) +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  ggtitle("Income vs Spending") +
+  xlab("Total Income") +
+  ylab("Total Spending")
+
+# Pairplot
+ggpairs(
+  spending %>% 
+    select(total_income, total_spending, housing, food, entertainment, gender),
+  aes(color = gender),  # Use gender for color mapping
+  title = "Pairplot of Income and Spending Variables"
+)
+```
+
+```{r Load Data, message=FALSE, warning=FALSE}
+# Analyze differences in spending by gender for key categories
+categories <- c("housing", "food", "transportation", "books_supplies", 
+                "entertainment", "personal_care", "technology", 
+                "health_wellness", "miscellaneous", "tuition")
+
+# Function to calculate category spending by gender
+summarize_by_category <- function(category) {
+  combined_data %>%
+    group_by(gender) %>%
+    summarise(
+      mean_spending = mean(!!sym(category), na.rm = TRUE),
+      sd_spending = sd(!!sym(category), na.rm = TRUE),
+      n = n()
+    ) %>%
+    mutate(category = category)
+}
+
+# Define categories to summarize
+categories <- c("housing", "food", "transportation", "books_supplies", 
+                "entertainment", "personal_care", "technology", 
+                "health_wellness", "miscellaneous", "tuition")
+
+# Function to plot spending by gender for each category
+plot_spending_by_gender <- function(category) {
+  ggplot(combined_data, aes(x = gender, y = !!sym(category), fill = gender)) +
+    geom_boxplot() +
+    ggtitle(paste("Spending on", category, "by Gender")) +
+    xlab("Gender") +
+    ylab(paste("Spending on", category)) +
+    theme_minimal()
+}
+```
+
