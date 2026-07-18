@@ -1,61 +1,67 @@
 # 🏰 Castle Siege — Endless Defense
 
-A medieval tower-defense game built for playing **while you multitask**. Towers auto-fight,
-your army auto-resummons, waves auto-start — you drop in between tasks to spend gold,
-upgrade, and see how long you can last.
+A medieval tower-defense game built for **playing while you multitask**. Towers auto-fight,
+your army auto-resummons, heroes auto-cast their skills, waves auto-start — you drop in
+between tasks to spend gold, upgrade, and see how deep you can push.
 
 ![Castle Siege screenshot](screenshot.png)
 
-## How to run it locally
+## How to run it
 
-No install, no server, no dependencies. Just:
+No install, no server, no dependencies, fully offline:
 
 1. Download this `castle-siege` folder (or clone the repo).
 2. Double-click **`index.html`** — it opens in your browser (Chrome, Edge, or Firefox).
+3. Click anywhere once and hit 🎵 for the soundtrack (browsers require a click before audio).
 
-Progress **autosaves every wave** (per browser), so you can close the tab and hit
-*Continue* later. Note: the save lives in the browser's storage for that file location —
-if you move the folder, the save starts fresh.
+Progress **autosaves every wave**, per battlefield, in your browser's storage.
 
-## The game
+## Three battlefields
 
-- **Endless waves** that scale forever. Every **10th wave is a boss** (4 rotating bosses
-  that come back stronger as tier II, III…).
-- **9 tower types**, each upgradeable **5 levels** (they change look as they grow):
-  Archer, Cannon, Frost Spire, Flame Brazier, Ballista, Alchemy Lab (poison),
-  Storm Spire (chain lightning), **Gold Mint** (passive income — the idle player's best
-  friend) and **Holy Beacon** (damage aura for nearby towers).
-- **12 troop types** you summon to fight on the road — Militia, Archers, Swordsmen,
-  Spearmen, Crossbowmen, Berserkers, Knights, Battle Mages, Clerics (healers), Cavalry,
-  Paladins, and Giants. They block enemies, they die, and — key feature — you set a
-  **keep-count per type** and the game **auto-resummons** them with your gold while
-  you're off doing something else. Each type is upgradeable (all future summons get stronger).
-- **A hero, Sir Aldric**, fights from wave 1: cleaves crowds, slams packs of enemies,
-  respawns when he falls. Train him with gold — his armor evolves every 5 levels.
-- **14+ enemy types** with armor (use magic towers against armored foes!), healers,
-  regenerators, and fast flankers — plus random **Elite** (purple) and **Champion** (gold)
-  rarities worth extra gold, and themed SWARM / ARMORED / ELITE waves.
-- **Castle lives**: 20. Normal enemies that slip through cost 1–3, bosses cost 10.
+| Battlefield | Difficulty | Roads | Twist |
+|---|---|---|---|
+| Greenvale Meadow | Easy | 1 | The classic winding road — learn the trade |
+| Amberfield Crossroads | Medium | 2 | Two war-roads converge on your gate |
+| Ashen Pass | Hard | 3 | Three scorched paths meet in a killzone; richer gold |
+
+Each keeps its own save slot and best-wave record. Endless waves, a **boss every 10th wave**
+(4 rotating bosses that return stronger as tier II, III…), and Elite/Champion enemy rarities.
+
+## Your arsenal
+
+- **9 towers × 5 levels** — Archer, Cannon, Frost, Flame, Ballista, Poison, chain-lightning
+  Storm Spire, **Gold Mint** (passive income) and **Holy Beacon** (damage aura). Armored
+  enemies resist arrows — melt them with magic.
+- **12 troop types** — set a keep-count per type and fallen troops **auto-resummon at a
+  discount**; on multi-road maps the army reinforces the most threatened road automatically.
+- **6 heroes** — Sir Aldric leads from wave 1; recruit Lyra, Magnus, Celeste, Bjorn, and Nyx
+  as you push deeper (they unlock earlier on harder maps). At **Lv 3** each learns an
+  auto-cast signature skill — Valor Slam, Arrow Storm, Meteor, Sanctuary, War Cry, Shadow
+  Flurry — and at **Lv 8** a passive.
+- **7 relics** — permanent tiered upgrades: troop damage, tower damage, army capacity, gold
+  income, castle walls, hero power, faster resummons.
+- **3 consumables** — click-target **Meteor Strike** (the boss-killer), **Horn of Renewal**
+  (full army heal), **Frost Nova** (freeze everything). Stock up before boss waves.
 
 ## Multitask setup 😎
 
-1. Turn **AUTO** waves on (it's on by default).
-2. Set your army keep-counts in the **Army** tab.
-3. Build a couple of **Gold Mints**.
-4. Crank speed to **3×** and go do your real work — glance over, spend gold, repeat.
+AUTO waves on → set army keep-counts → build Gold Mints → 3× speed → collapse the bottom
+panel (▼). Check in when you hear the boss horn.
 
 ## Controls
 
 | Input | Action |
 |---|---|
-| Click tower card → click tile | Build (Shift-click to place several) |
-| `1`–`9` | Tower build hotkeys |
+| Click tower card → click tile | Build (Shift-click = several) |
+| `1`–`9` | Tower hotkeys |
 | Click a built tower | Upgrade / sell |
-| `H` + click | Move the hero |
-| `R` + click | Set the army rally point |
-| `Space` | Pause |
-| `F` | Cycle game speed |
-| `Esc` / right-click | Cancel / deselect |
+| Click a hero (or `H`) → click map | Reposition hero |
+| `R` + click near a road | Set that road's rally point |
+| `Space` / `F` / `Esc` | Pause / speed / cancel |
 
-Built with plain HTML5 canvas + JavaScript — all art drawn procedurally in code, sound
-synthesized with WebAudio. No frameworks, no assets, works offline.
+## Tech
+
+Plain HTML5 canvas + JavaScript — no frameworks, no assets, no network. All art is
+pre-rendered procedurally in code (`sprites.js`); the medieval score is generated live with
+WebAudio (`music.js` — Karplus-Strong plucked lute, flute, drums, with calm/battle/boss
+intensity layers).

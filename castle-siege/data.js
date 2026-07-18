@@ -31,20 +31,20 @@ function fmt(n){
 const MAPS=[
  {id:'meadow', name:'Greenvale Meadow', diff:'Easy', theme:'meadow',
   desc:'A single winding road through peaceful farmland. Learn the trade of war.',
-  mods:{hp:1, gold:1, spd:1, elite:1, heroWaveMul:1},
+  mods:{hp:1, gold:1, spd:1, elite:1, heroWaveMul:1, startGold:240},
   paths:[
     [[-1,4],[6,4],[6,13],[13,13],[13,5],[20,5],[20,13],[27,13],[27,8],[30.6,8]],
   ]},
  {id:'crossroads', name:'Amberfield Crossroads', diff:'Medium', theme:'autumn',
   desc:'Two war-roads converge on your gate through the harvest fields. Split your defenses wisely.',
-  mods:{hp:1.18, gold:1.12, spd:1, elite:1.25, heroWaveMul:0.85},
+  mods:{hp:1.18, gold:1.3, spd:1, elite:1.25, heroWaveMul:0.85, startGold:360},
   paths:[
     [[-1,2],[8,2],[8,6],[16,6],[16,2],[23,2],[23,8],[30.6,8]],
     [[-1,15],[7,15],[7,10],[14,10],[14,15],[21,15],[21,11],[27,11],[27,8],[30.6,8]],
   ]},
  {id:'ashen', name:'Ashen Pass', diff:'Hard', theme:'ashen',
   desc:'Three scorched warpaths meet in a killzone before your walls. Only veterans survive here.',
-  mods:{hp:1.42, gold:1.28, spd:1.06, elite:1.6, heroWaveMul:0.72},
+  mods:{hp:1.42, gold:1.62, spd:1.06, elite:1.6, heroWaveMul:0.72, startGold:480},
   paths:[
     [[-1,2],[9,2],[9,5],[17,5],[17,2],[23,2],[23,8],[26,8],[30.6,8]],
     [[-1,9],[7,9],[7,12],[14,12],[14,8],[26,8],[30.6,8]],
@@ -279,7 +279,7 @@ const ENEMIES=[
 const ENEMY_BY={};ENEMIES.forEach(e=>ENEMY_BY[e.id]=e);
 
 const BOSSES=[
- {id:'warlord', name:'Ogre Warlord',   hp:1550, speed:30, armor:0.3, gold:220, leak:10, kind:'big', col:'#b0703a', size:24, ability:'stomp', abCd:8,  desc:'Stomps your troops flat!'},
+ {id:'warlord', name:'Ogre Warlord',   hp:1400, speed:30, armor:0.3, gold:220, leak:10, kind:'big', col:'#b0703a', size:24, ability:'stomp', abCd:8,  desc:'Stomps your troops flat!'},
  {id:'colossus',name:'Bone Colossus',  hp:2000, speed:27, armor:0.45,gold:280, leak:10, kind:'big', col:'#cfd0c2', size:25, ability:'summon',abCd:10, desc:'Raises skeletons as it marches.'},
  {id:'behemoth',name:'Swamp Behemoth', hp:2600, speed:25, armor:0.3, gold:340, leak:10, kind:'big', col:'#4f7a52', size:26, ability:'regen', abCd:1,  desc:'Regenerates. Burst it down!'},
  {id:'drake',   name:'Infernal Drake', hp:2300, speed:33, armor:0.35,gold:400, leak:10, kind:'drake',col:'#c2402a', size:24, ability:'burn',  abCd:1,  desc:'Scorches nearby defenders.'},
@@ -314,8 +314,8 @@ const CONSUM_BY={};CONSUMABLES.forEach(c=>CONSUM_BY[c.id]=c);
 
 /* ---------- wave scaling ---------- */
 const hpMul=w=>(1+0.15*w)*Math.pow(1.07,w)*(MAP?MAP.def.mods.hp:1);
-const goldMul=w=>(1+0.05*w+0.0008*w*w)*(MAP?MAP.def.mods.gold:1)*(1+relicVal('treasury'));
-const waveReward=w=>Math.round((60+14*w+(w%10===0?150+8*w:0))*(1+relicVal('treasury')));
+const goldMul=w=>(1+0.06*w+0.0008*w*w)*(MAP?MAP.def.mods.gold:1)*(1+relicVal('treasury'));
+const waveReward=w=>Math.round((60+14*w+(w%10===0?150+8*w:0))*(1+relicVal('treasury'))*(MAP?0.85+0.15*MAP.P.length:1));
 const speedMul=w=>Math.min(1.25,1+0.003*w)*(MAP?MAP.def.mods.spd:1);
 const popCap=w=>Math.min(26,8+Math.floor(w/3)+Math.round(relicVal('banners')));
 const maxLives=()=>CFG.START_LIVES+Math.round(relicVal('walls'));

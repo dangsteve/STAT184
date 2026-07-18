@@ -11,7 +11,7 @@ function newGame(mapId){
   initMapRuntime(mdef);
   G={
     mapId:mdef.id,
-    gold:CFG.START_GOLD, lives:CFG.START_LIVES, wave:1, time:0,
+    gold:mdef.mods.startGold||CFG.START_GOLD, lives:CFG.START_LIVES, wave:1, time:0,
     over:false, paused:false, speed:1, autoWave:true,
     towers:[], enemies:[], troops:[], projs:[], parts:[], texts:[], fx:[],
     troopLvl:{}, desired:{},
@@ -128,13 +128,14 @@ function pickTroopPath(){
   }
   return best;
 }
-function summonTroop(id,silent){
+function summonTroop(id,silent,discount){
   const def=TROOP_BY[id];
   if(def.unlock>G.wave)return false;
   if(G.troops.length>=popCap(G.wave))return false;
   const st=troopStat(id,G.troopLvl[id]);
-  if(G.gold<st.cost)return false;
-  G.gold-=st.cost;
+  const cost=discount?Math.round(st.cost*0.6):st.cost; // auto-reinforcements are cheaper
+  if(G.gold<cost)return false;
+  G.gold-=cost;
   const pi=pickTroopPath();
   const d=MAP.P[pi].total-40;
   const p=posAt(pi,d);
@@ -160,7 +161,7 @@ function maintainArmy(dt){
   for(const def of TROOPS){
     if(def.unlock>G.wave)continue;
     if(troopsAlive(def.id)<G.desired[def.id]){
-      if(summonTroop(def.id,true))return;
+      if(summonTroop(def.id,true,true))return;
     }
   }
 }
@@ -236,20 +237,21 @@ function buildWaveSchedule(w){
     q.push({boss:b,tier,delay:2.5,rarity:null,pi:rndPi()});
     const avail=ENEMIES.filter(e=>e.unlock<=w);
     const esc=avail.slice(-3);
-    const n=(6+Math.floor(w/4))*nP;
+    const n=(4+Math.floor(w/5))*nP;
     for(let i=0;i<n;i++)q.push({type:pick(esc).id,delay:1.4/nP,rarity:null,pi:rndPi()});
     setBanner('⚔ WAVE '+w+' — BOSS: '+b.name+(tier>1?' '+(['','II','III','IV','V'][tier]||('x'+tier)):'')+' ⚔',true);
     SFXp('boss_roar');
     return q;
   }
   const avail=ENEMIES.filter(e=>e.unlock<=w);
-  let budget=(8+w*4+Math.pow(w,1.6)*0.5)*(0.75+0.25*nP);
-  let interval=Math.max(0.3,1.05-w*0.013)/(0.6+0.4*nP);
+  const pathFac=1+(nP-1)*0.26*Math.min(1,w/8); // multi-path pressure ramps in over 8 waves
+  let budget=(8+w*4+Math.pow(w,1.6)*0.5)*pathFac;
+  let interval=Math.max(0.3,1.05-w*0.013)/(0.7+0.3*nP);
   let theme='';
   const roll=Math.random();
-  if(w>=6&&roll<0.16){theme='SWARM';budget*=1.35;interval*=0.55;}
-  else if(w>=10&&roll<0.30){theme='ELITE';budget*=0.75;}
-  else if(w>=8&&roll<0.42){theme='ARMORED';}
+  if(w>=12&&roll<0.16){theme='SWARM';budget*=1.3;interval*=0.55;}
+  else if(w>=11&&roll<0.30){theme='ELITE';budget*=0.75;}
+  else if(w>=10&&roll<0.42){theme='ARMORED';}
   let pool=avail;
   if(theme==='SWARM')pool=avail.filter(e=>e.w<=2.5);
   if(theme==='ARMORED')pool=avail.filter(e=>e.armor>=0.15);
@@ -286,6 +288,7 @@ function startWave(bonus){
   SFXp('horn_wave');
 }
 function endWave(){
+  if(G.over)return;
   G.waveActive=false;
   const reward=waveReward(G.wave);
   G.gold+=reward;G.goldEarned+=reward;
@@ -318,7 +321,7 @@ function spawnEnemy(entry){
   let def,tier=1,boss=false;
   if(entry.boss){def=entry.boss;tier=entry.tier;boss=true;}
   else def=ENEMY_BY[entry.type];
-  const hm=hpMul(w)*(boss?Math.pow(2.1,tier-1):1);
+  const hm=hpMul(w)*(boss?Math.pow(2.1,tier-1)*(w===10?0.85:1):1);
   let hp=def.hp*hm, gold=Math.round(def.gold*goldMul(w)), size=def.size, leak=def.leak, rarity=entry.rarity;
   let spd=def.speed*speedMul(w)*rnd(0.92,1.08);
   if(rarity==='elite'){hp*=2.6;gold=Math.round(gold*3);size*=1.18;spd*=1.05;}
@@ -599,7 +602,7 @@ function stepSim(dt){
   if(!G||G.over||G.paused)return;
   const step=1/30;
   let rem=dt*G.speed;
-  while(rem>0){
+  while(rem>0&&!G.over){
     const h=Math.min(step,rem);
     subStep(h);
     rem-=h;
@@ -820,7 +823,7 @@ function subStep(dt){
       e.atkCd-=dt;
       if(e.atkCd<=0){
         e.atkCd=1.0;
-        const dmg=(6+e.def.hp*0.06)*Math.sqrt(hpMul(G.wave)/(MAP.def.mods.hp||1))*(e.boss?2.2:1)*(e.rarity==='champ'?1.6:1);
+        const dmg=(5+e.def.hp*0.05)*Math.sqrt(hpMul(G.wave)/(MAP.def.mods.hp||1))*(e.boss?2.2:1)*(e.rarity==='champ'?1.6:1);
         damageAlly(e.blk,dmg);
         addFx({kind:'slash',x:e.blk.x,y:e.blk.y,life:0.15,col:'#ff8a6a'});
       }
@@ -1037,7 +1040,7 @@ function clearSave(){try{localStorage.removeItem(saveKey());}catch(err){}}
 function loadGame(mapId){
   try{
     const s=JSON.parse(localStorage.getItem('cs2_save_'+mapId));
-    if(!s||s.v!==2)return false;
+    if(!s||s.v!==2||!(s.lives>0))return false;
     newGame(mapId);
     G.gold=s.gold;G.lives=s.lives;G.wave=s.wave;
     G.kills=s.kills||0;G.bossKills=s.bossKills||0;G.goldEarned=s.goldEarned||0;
