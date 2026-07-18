@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏰 Castle Siege — Endless Defense</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+  html,body{height:100%;background:#171522;font-family:Georgia,'Times New Roman',serif;color:#e8e0cc;overflow:hidden;}
+  #wrap{display:flex;height:100vh;gap:8px;padding:8px;}
+  #gameArea{position:relative;flex:1;display:flex;flex-direction:column;min-width:0;}
+  #hud{display:flex;align-items:center;gap:10px;padding:6px 10px;background:#242038;border:1px solid #3d3758;border-radius:10px 10px 0 0;flex-wrap:wrap;}
+  .stat{display:flex;align-items:center;gap:5px;font-size:17px;font-weight:bold;}
+  .stat .ico{font-size:18px;}
+  #stLives{color:#ff7a7a;}#stGold{color:#ffd75e;}#stWave{color:#9ad4ff;}#stPop{color:#a8e0a8;font-size:14px;}
+  .hud-spacer{flex:1;}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:6px;}
+  .hud-btn{background:#3d3758;color:#e8e0cc;padding:5px 10px;font-size:14px;border:1px solid #55507a;}
+  .hud-btn:hover{background:#4d4770;}
+  .hud-btn.active{background:#7a5ac0;border-color:#a88be0;}
+  .hud-btn:disabled{opacity:0.6;cursor:default;}
+  #btnWave{background:#7a3a3a;border-color:#c25a5a;font-weight:bold;min-width:170px;}
+  #btnWave:hover:not(:disabled){background:#9a4a4a;}
+  #canvasBox{position:relative;flex:1;min-height:0;background:#000;border:1px solid #3d3758;border-top:none;border-radius:0 0 10px 10px;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+  canvas#game{max-width:100%;max-height:100%;display:block;image-rendering:auto;}
+  #cursorHint{display:none;position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(20,17,34,0.9);border:1px solid #7a5ac0;padding:6px 14px;border-radius:20px;font-size:13px;pointer-events:none;color:#d8ccff;}
+  /* ============ right panel ============ */
+  #panel{width:320px;display:flex;flex-direction:column;background:#242038;border:1px solid #3d3758;border-radius:10px;overflow:hidden;}
+  #tabs{display:flex;}
+  .tab{flex:1;padding:9px 4px;text-align:center;background:#1c1930;color:#9a92b8;font-size:14px;font-weight:bold;border-bottom:2px solid #3d3758;}
+  .tab.active{background:#242038;color:#ffd75e;border-bottom-color:#ffd75e;}
+  .pane{flex:1;overflow-y:auto;padding:8px;display:none;}
+  .pane::-webkit-scrollbar{width:8px;}
+  .pane::-webkit-scrollbar-thumb{background:#3d3758;border-radius:4px;}
+  /* cards */
+  .card{position:relative;display:flex;gap:8px;align-items:center;background:#2d2846;border:1px solid #3d3758;border-radius:8px;padding:7px 8px;margin-bottom:6px;transition:border-color .15s;}
+  .card:hover{border-color:#7a5ac0;}
+  .tower-card{cursor:pointer;}
+  .tower-card.selected{border-color:#ffd75e;background:#3a3252;}
+  .card.cant{opacity:0.55;}
+  .card-icon{font-size:24px;width:32px;text-align:center;flex-shrink:0;}
+  .card-body{flex:1;min-width:0;}
+  .card-name{font-size:14px;font-weight:bold;color:#f0e8d0;}
+  .card-desc{font-size:11px;color:#9a92b8;line-height:1.25;}
+  .card-cost{font-size:14px;font-weight:bold;color:#ffd75e;flex-shrink:0;}
+  .lvl-badge{font-size:11px;color:#ffd75e;background:#1c1930;padding:1px 6px;border-radius:8px;margin-left:4px;}
+  .troop-stats{font-size:11px;color:#a8c0d8;margin-top:2px;}
+  .troop-ctrl{display:flex;flex-direction:column;gap:4px;align-items:stretch;flex-shrink:0;}
+  .stepper{display:flex;align-items:center;gap:3px;justify-content:center;}
+  .step-btn{width:20px;height:20px;background:#3d3758;color:#e8e0cc;font-size:13px;line-height:1;border:1px solid #55507a;}
+  .step-btn:hover{background:#55507a;}
+  .step-val{font-size:12px;min-width:34px;text-align:center;color:#a8e0a8;}
+  .small-btn{background:#3a5a8a;color:#e8f0ff;padding:4px 8px;font-size:12px;border:1px solid #5a7aae;}
+  .small-btn:hover:not(:disabled){background:#4a6a9c;}
+  .small-btn:disabled{opacity:0.5;cursor:default;}
+  .small-btn.gold{background:#7a6a2a;border-color:#a8933a;color:#ffe8a0;}
+  .small-btn.gold:hover:not(:disabled){background:#8f7c32;}
+  .small-btn.danger{background:#7a3a3a;border-color:#a85a5a;color:#ffd8d8;}
+  .small-btn.danger:hover{background:#8f4444;}
+  .lock-cover{position:absolute;inset:0;background:rgba(20,17,34,0.82);border-radius:8px;display:none;align-items:center;justify-content:center;font-size:13px;color:#9a92b8;font-weight:bold;}
+  #towerDetail{display:none;background:#1c1930;border:1px solid #ffd75e55;border-radius:8px;padding:9px;margin-bottom:8px;}
+  .td-head{font-size:15px;font-weight:bold;margin-bottom:5px;}
+  .td-stats{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:#a8c0d8;margin-bottom:8px;}
+  .btn-row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+  .section-note{font-size:11px;color:#8a82a8;margin:4px 2px 10px;line-height:1.35;}
+  /* hero pane */
+  #heroPortrait{font-size:44px;text-align:center;margin:8px 0 2px;}
+  #heroName{text-align:center;font-size:18px;font-weight:bold;color:#9ad4ff;}
+  #heroTier{text-align:center;font-size:12px;color:#ffd75e;margin-bottom:6px;}
+  #heroStats{display:flex;flex-direction:column;gap:5px;align-items:center;font-size:14px;color:#c8d8ee;margin-bottom:10px;}
+  #heroStatus{display:none;text-align:center;color:#ff8a8a;font-size:13px;margin-bottom:8px;}
+  #btnHeroUp{background:#7a6a2a;border:1px solid #a8933a;color:#ffe8a0;padding:8px 14px;font-size:14px;font-weight:bold;}
+  #btnHeroUp:hover:not(:disabled){background:#8f7c32;}
+  #btnHeroUp:disabled{opacity:0.5;cursor:default;}
+  /* overlays */
+  #overlay,#helpOverlay{position:fixed;inset:0;background:rgba(12,10,20,0.88);display:none;align-items:center;justify-content:center;z-index:50;}
+  .panel-box{background:#242038;border:2px solid #7a5ac0;border-radius:14px;padding:28px 36px;max-width:520px;text-align:center;box-shadow:0 0 60px rgba(122,90,192,0.35);}
+  .start-box h1{font-size:34px;color:#ffd75e;margin-bottom:2px;}
+  .start-box h2{font-size:17px;color:#9a92b8;font-weight:normal;margin-bottom:14px;letter-spacing:3px;text-transform:uppercase;}
+  .lore{font-size:14px;color:#c8c0d8;line-height:1.5;margin-bottom:12px;}
+  .best{color:#9ad4ff;font-size:14px;margin-bottom:10px;}
+  .stats-line{font-size:14px;color:#c8c0d8;line-height:1.7;margin-bottom:14px;}
+  .big-btn{background:#7a3a3a;border:1px solid #c25a5a;color:#ffe8d8;padding:11px 26px;font-size:17px;font-weight:bold;font-family:inherit;}
+  .big-btn:hover{background:#9a4a4a;}
+  .big-btn.alt{background:#3a5a8a;border-color:#5a7aae;color:#e8f0ff;}
+  .big-btn.alt:hover{background:#4a6a9c;}
+  .hint-line{margin-top:14px;font-size:12px;color:#8a82a8;line-height:1.4;}
+  .help-box{max-width:600px;text-align:left;max-height:86vh;overflow-y:auto;}
+  .help-box h2{color:#ffd75e;margin-bottom:10px;text-align:center;}
+  .help-box h3{color:#9ad4ff;font-size:15px;margin:12px 0 4px;}
+  .help-box p,.help-box li{font-size:13px;color:#c8c0d8;line-height:1.5;}
+  .help-box ul{padding-left:20px;}
+  kbd{background:#1c1930;border:1px solid #55507a;border-radius:4px;padding:1px 6px;font-size:12px;font-family:monospace;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="gameArea">
+    <div id="hud">
+      <span class="stat"><span class="ico">❤️</span><span id="stLives">20</span></span>
+      <span class="stat"><span class="ico">🪙</span><span id="stGold">0</span></span>
+      <span class="stat"><span class="ico">🌊</span><span id="stWave">1</span></span>
+      <span class="stat" title="Army size / cap"><span class="ico">⚔️</span><span id="stPop">0/8</span></span>
+      <div class="hud-spacer"></div>
+      <button class="hud-btn" id="btnWave">Start Wave</button>
+      <button class="hud-btn" id="btnAuto" title="Auto-start waves">AUTO ✓</button>
+      <button class="hud-btn" id="spd1">1×</button>
+      <button class="hud-btn" id="spd2">2×</button>
+      <button class="hud-btn" id="spd3">3×</button>
+      <button class="hud-btn" id="btnPause" title="Pause (Space)">⏸</button>
+      <button class="hud-btn" id="btnSound" title="Sound">🔊</button>
+      <button class="hud-btn" id="btnHelp" title="How to play">?</button>
+    </div>
+    <div id="canvasBox">
+      <canvas id="game" width="1280" height="720"></canvas>
+      <div id="cursorHint"></div>
+    </div>
+  </div>
+  <div id="panel">
+    <div id="tabs">
+      <div class="tab active" id="tab-towers">🏰 Towers</div>
+      <div class="tab" id="tab-army">⚔️ Army</div>
+      <div class="tab" id="tab-hero">🦸 Hero</div>
+    </div>
+    <div class="pane" id="pane-towers" style="display:block">
+      <div id="towerDetail"></div>
+      <div class="section-note">Click a tower type, then an empty tile. <b>Shift-click</b> to place several. Hotkeys <kbd>1</kbd>–<kbd>9</kbd>. Click a built tower to upgrade it (5 levels).</div>
+      <div id="towerCards"></div>
+    </div>
+    <div class="pane" id="pane-army">
+      <div class="section-note">Set the <b>keep-count</b> (− / +) and fallen troops are <b>auto-resummoned</b> using your gold — the army fights on while you multitask. <kbd>R</kbd> sets the rally point.</div>
+      <div class="btn-row" style="margin-bottom:8px"><button class="small-btn" id="btnRally">🚩 Set Rally Point</button></div>
+      <div id="armyCards"></div>
+    </div>
+    <div class="pane" id="pane-hero">
+      <div id="heroPortrait">🛡️</div>
+      <div id="heroName">Sir Aldric <span class="lvl-badge" id="heroLvl">Lv 1</span></div>
+      <div id="heroTier">Squire’s Plate</div>
+      <div id="heroStats"></div>
+      <div id="heroStatus"></div>
+      <div class="btn-row">
+        <button id="btnHeroUp">⬆ Train</button>
+        <button class="small-btn" id="btnHeroMove">🚶 Move Hero</button>
+      </div>
+      <div class="section-note" style="margin-top:12px">Your hero fights automatically near his post (<kbd>H</kbd> to move him). He cleaves groups, slams packs of enemies, and respawns if he falls. Training raises damage &amp; health — his armor evolves every 5 levels.</div>
+    </div>
+  </div>
+</div>
+<div id="overlay"></div>
+<div id="helpOverlay">
+  <div class="panel-box help-box">
+    <h2>📜 How to Play</h2>
+    <h3>Goal</h3>
+    <p>Endless waves march toward your castle gate. Each enemy that slips through costs lives (bosses cost 10!). Survive as long as you can.</p>
+    <h3>Towers (tab 1)</h3>
+    <ul>
+      <li>9 types — pierce armor with magic (❄🔥⚡☠), shred flesh with arrows and cannonballs.</li>
+      <li>Click a built tower to <b>upgrade</b> (5 levels, looks &amp; hits harder) or sell.</li>
+      <li><b>Gold Mint</b> makes passive income; <b>Holy Beacon</b> buffs nearby towers.</li>
+    </ul>
+    <h3>Army (tab 2)</h3>
+    <ul>
+      <li>12 troop types unlock as waves pass. They block and fight enemies on the road.</li>
+      <li>Set each type's keep-count — the game <b>auto-resummons</b> them when they fall.</li>
+      <li>Upgrade each type (⬆) to make every future summon stronger.</li>
+    </ul>
+    <h3>Hero (tab 3)</h3>
+    <p>Sir Aldric fights from wave 1, cleaves crowds, and slams packs. Train him with gold; move him with <kbd>H</kbd>.</p>
+    <h3>Enemies</h3>
+    <p>14+ types — armored foes resist physical damage (use magic!). Watch for glowing <b style="color:#c88bff">Elites</b> and <b style="color:#ffd75e">Champions</b>. Every 10th wave brings a <b style="color:#ff7a7a">Boss</b>.</p>
+    <h3>Multitask mode 😎</h3>
+    <p>Turn <b>AUTO</b> waves on, set your army loadout, build some Gold Mints, crank speed to 3×… and check back between meetings. Progress autosaves each wave.</p>
+    <h3>Keys</h3>
+    <p><kbd>1</kbd>–<kbd>9</kbd> build • <kbd>H</kbd> move hero • <kbd>R</kbd> rally point • <kbd>Space</kbd> pause • <kbd>F</kbd> speed • <kbd>Esc</kbd> cancel</p>
+    <div class="btn-row" style="margin-top:14px"><button class="big-btn alt" id="btnCloseHelp">Close</button></div>
+  </div>
+</div>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="render.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
