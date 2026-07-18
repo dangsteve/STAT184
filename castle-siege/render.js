@@ -478,8 +478,8 @@ function drawHeroU(c,h){
   const w=26,pct=clamp(h.hp/h.maxHp,0,1);
   c.fillStyle='rgba(0,0,0,0.55)';c.fillRect(x-w/2-1,y-s-17,w+2,6);
   c.fillStyle=def.col;c.fillRect(x-w/2,y-s-16,w*pct,4);
-  /* skill-ready glint */
-  if(h.lvl>=def.skill.unlockLvl&&h.skillCd<=0){
+  /* skill-ready glint (also shown while re-checking for targets) */
+  if(h.lvl>=def.skill.unlockLvl&&h.skillCd<=1.3){
     c.fillStyle='#ffd75e';c.font='bold 10px Georgia';c.textAlign='center';
     c.fillText('✦',x+w/2+6,y-s-11);
   }
@@ -525,7 +525,9 @@ function drawProj(c,p){
 function drawFx(c,f){
   if(f.kind==='ring'){
     c.strokeStyle=f.col;c.globalAlpha=Math.max(0,f.life*2);c.lineWidth=3;
-    c.beginPath();c.arc(f.x,f.y,f.curR===undefined?(f.curR=f.r):f.curR+=(f.maxR-f.r)*0.12,0,7);c.stroke();
+    if(f.curR===undefined)f.curR=f.r;
+    f.curR=Math.min(f.maxR,f.curR+(f.maxR-f.r)*0.12);
+    c.beginPath();c.arc(f.x,f.y,f.curR,0,7);c.stroke();
     c.globalAlpha=1;
   }else if(f.kind==='zap'){
     c.globalCompositeOperation='lighter';
@@ -642,6 +644,7 @@ function drawFrame(c,UIS){
     c.fillStyle=ok?'rgba(120,230,140,0.3)':'rgba(230,90,90,0.3)';
     c.fillRect(x,y,CFG.CELL,CFG.CELL);
     c.strokeStyle=ok?'rgba(120,230,140,0.8)':'rgba(230,90,90,0.8)';
+    c.lineWidth=2;
     c.strokeRect(x+1,y+1,CFG.CELL-2,CFG.CELL-2);
     const def=TOWER_BY[UIS.buildType];
     if(def.range){

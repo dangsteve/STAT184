@@ -146,7 +146,7 @@ function beginRun(mapId,cont){
   started=true;
   UIS.mode='none';UIS.selTower=null;
   buildArmyCards();buildHeroCards();buildRelicCards();refreshCards();
-  hideTowerDetail();
+  hideTowerDetail();setCursorHint('');
   SFXp('horn_wave');
 }
 function onGameOver(){
@@ -206,7 +206,7 @@ function bindHud(){
     };
   }
   $('btnDock').onclick=()=>setDock($('dockbody').style.display==='none');
-  $('btnRally').onclick=()=>{UIS.mode='rally';UIS.selTower=null;setCursorHint('Click near a road to set that road’s rally point');};
+  $('btnRally').onclick=()=>{UIS.mode='rally';UIS.selTower=null;if(G)G.targetMode=null;setCursorHint('Click near a road to set that road’s rally point');};
 }
 function setDock(open,silent){
   $('dockbody').style.display=open?'block':'none';
@@ -384,23 +384,32 @@ function refreshHeroCards(){
     if(h.lvl>=def.skill.unlockLvl)sk.innerHTML='✦ '+def.skill.name+(h.recruited&&!h.dead&&h.skillCd>0?' <span class="cd">'+Math.ceil(h.skillCd)+'s</span>':'');
     else sk.innerHTML='<span class="locked-skill">✦ '+def.skill.name+' at Lv '+def.skill.unlockLvl+'</span>';
     const bb=$('hb-'+def.id);
+    /* only rebuild the buttons row when its structure changes, so 300ms
+       refreshes never swap a button out from under a click */
+    const sig=h.recruited+':'+(h.dead?'d':'a')+':'+h.lvl;
     if(!h.recruited){
-      bb.innerHTML='<button class="small-btn gold" data-rec="'+def.id+'">Recruit '+fmt(def.cost)+'g</button>';
-      bb.querySelector('button').onclick=()=>{const hh=G.heroes.find(x=>x.id===def.id);if(recruitHero(hh))refreshCards();};
+      if(bb.dataset.sig!==sig){
+        bb.dataset.sig=sig;
+        bb.innerHTML='<button class="small-btn gold" data-rec="'+def.id+'">Recruit '+fmt(def.cost)+'g</button>';
+        bb.querySelector('button').onclick=()=>{const hh=G.heroes.find(x=>x.id===def.id);if(recruitHero(hh))refreshCards();};
+      }
       bb.querySelector('button').disabled=G.gold<def.cost;
     }else if(h.dead){
+      bb.dataset.sig=sig;
       bb.innerHTML='<span class="dead-note">☠ '+Math.ceil(h.respawnT)+'s</span>';
     }else{
       const c=heroUpCost(def,h.lvl);
-      bb.innerHTML='<button class="small-btn gold" data-tr="'+def.id+'">⬆ '+fmt(c)+'g</button>'+
-        '<button class="small-btn" data-mv="'+def.id+'">🚶 Move</button>';
-      const tb=bb.querySelector('[data-tr]');
-      tb.onclick=()=>{const hh=G.heroes.find(x=>x.id===def.id);if(upgradeHeroU(hh))refreshCards();};
-      tb.disabled=G.gold<c;
-      bb.querySelector('[data-mv]').onclick=()=>{
-        G.selHero=h;UIS.mode='hero';
-        setCursorHint('Click the map to post '+def.name+' there');
-      };
+      if(bb.dataset.sig!==sig){
+        bb.dataset.sig=sig;
+        bb.innerHTML='<button class="small-btn gold" data-tr="'+def.id+'">⬆ '+fmt(c)+'g</button>'+
+          '<button class="small-btn" data-mv="'+def.id+'">🚶 Move</button>';
+        bb.querySelector('[data-tr]').onclick=()=>{const hh=G.heroes.find(x=>x.id===def.id);if(upgradeHeroU(hh))refreshCards();};
+        bb.querySelector('[data-mv]').onclick=()=>{
+          G.selHero=h;UIS.mode='hero';G.targetMode=null;
+          setCursorHint('Click the map to post '+def.name+' there');
+        };
+      }
+      bb.querySelector('[data-tr]').disabled=G.gold<c;
     }
   }
 }
@@ -558,22 +567,23 @@ function bindCanvas(){
 function bindKeys(){
   window.addEventListener('keydown',ev=>{
     if(!started||!G)return;
-    if(ev.key==='Escape'){cancelMode();UIS.mode='none';UIS.selTower=null;hideTowerDetail();setCursorHint('');}
+    if(ev.key==='Escape'){cancelMode();UIS.mode='none';UIS.selTower=null;hideTowerDetail();setCursorHint('');return;}
+    if(G.over)return;
     else if(ev.key===' '){ev.preventDefault();G.paused=!G.paused;}
     else if(ev.key==='f'||ev.key==='F'){G.speed=G.speed>=3?1:G.speed+1;}
-    else if(ev.key==='r'||ev.key==='R'){UIS.mode='rally';setCursorHint('Click near a road to set that road’s rally point');}
+    else if(ev.key==='r'||ev.key==='R'){UIS.mode='rally';G.targetMode=null;setCursorHint('Click near a road to set that road’s rally point');}
     else if(ev.key==='h'||ev.key==='H'){
       const hs=activeHeroes();
       if(hs.length){
         const i=(hs.indexOf(G.selHero)+1)%hs.length;
-        G.selHero=hs[i];UIS.mode='hero';
+        G.selHero=hs[i];UIS.mode='hero';G.targetMode=null;
         setCursorHint('Click the map to post '+G.selHero.hdef.name+' there');
       }
     }
     else if(ev.key>='1'&&ev.key<='9'){
       const def=TOWERS[+ev.key-1];
       if(def){
-        UIS.mode='build';UIS.buildType=def.id;
+        UIS.mode='build';UIS.buildType=def.id;G.targetMode=null;
         document.querySelectorAll('#towerCards .card').forEach(x=>x.classList.remove('selected'));
         const el=$('tc-'+def.id);if(el)el.classList.add('selected');
         setCursorHint('Click an empty tile to build '+def.name+' (Shift-click = several)');

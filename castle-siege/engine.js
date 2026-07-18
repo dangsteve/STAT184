@@ -437,7 +437,8 @@ function towerFire(t,st,def){
   if(!inRange.length)return false;
   let tgt;
   if(def.id==='ballista')tgt=inRange.reduce((a,b)=>a.hp>b.hp?a:b);
-  else tgt=inRange.reduce((a,b)=>a.d>b.d?a:b);
+  else tgt=inRange.reduce((a,b)=>(MAP.P[a.pi].total-a.d)<(MAP.P[b.pi].total-b.d)?a:b); // closest to the gate
+
   t.ang=Math.atan2(tgt.y-t.y,tgt.x-t.x);
   const dmg=st.dmg*t.auraMul*(1+relicVal('engineering'));
   switch(def.id){
@@ -488,7 +489,7 @@ function towerFire(t,st,def){
       SFXp('zap');break;}
     case 'flame':{
       damageEnemy(tgt,dmg,'magic');
-      tgt.burnT=st.burnDur;tgt.burnDps=Math.max(tgt.burnDps,st.burn*t.auraMul);
+      tgt.burnT=st.burnDur;tgt.burnDps=Math.max(tgt.burnDps,st.burn*t.auraMul*(1+relicVal('engineering')));
       for(let i=0;i<2;i++){
         if(G.parts.length<520){
           const a=t.ang+rnd(-0.25,0.25),s=rnd(120,200);
