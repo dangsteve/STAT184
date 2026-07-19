@@ -26,6 +26,10 @@ Progress autosaves every wave, per battlefield. Saves live in each browser's sto
   **7 permanent relics**.
 - **6 heroes** unlock as you push deeper — trainable, with signature skills (Lv 3) and
   passives (Lv 8).
+- **Flying enemies** after the first boss — Fell Bats, Gargoyles, Harpies, Storm Wyverns. Towers
+  are badged **⛰＋✈** (hits air) or **⛰** (ground only); ranged troops and heroes hit air, melee can't.
+- **🎡 Wheel of Fortune** — one free spin per new battle: gold, levels, relic tiers, or the tiny
+  golden **JACKPOT** slice (+1000g and +1 to everything).
 - **3 spells**, free and self-recharging, on the buttons over the battlefield:
   **Firestorm** (click-target burn), **Sanctified Ground** (click-target heal zone), and
   **RAGNAROK** — a 5-minute-cooldown cataclysm that devastates every enemy, stuns the horde,

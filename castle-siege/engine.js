@@ -21,7 +21,7 @@ function newGame(mapId){
     zones:[], ragnarokT:0,
     rally:MAP.P.map(p=>p.total*0.5),
     waveActive:false, spawnQueue:[], spawnT:0, intermission:12,
-    waveBanner:null, bannerT:0, shieldT:0,
+    waveBanner:null, bannerT:0, shieldT:0, spun:false,
     kills:0, bossKills:0, goldEarned:0, shake:0,
     maintainT:0, auraT:0, targetMode:null,
   };
@@ -355,11 +355,14 @@ function buildWaveSchedule(w){
   let interval=Math.max(0.3,1.05-w*0.013)/(0.7+0.3*nP);
   let theme='';
   const roll=Math.random();
-  if(w>=12&&roll<0.16){theme='SWARM';budget*=1.3;interval*=0.55;}
-  else if(w>=11&&roll<0.30){theme='ELITE';budget*=0.75;}
-  else if(w>=10&&roll<0.42){theme='ARMORED';}
+  const flyers=avail.filter(e=>e.fly);
+  if(w>=13&&flyers.length&&roll<0.14){theme='AIR RAID';budget*=0.85;}
+  else if(w>=12&&roll<0.28){theme='SWARM';budget*=1.3;interval*=0.55;}
+  else if(w>=11&&roll<0.40){theme='ELITE';budget*=0.75;}
+  else if(w>=10&&roll<0.52){theme='ARMORED';}
   let pool=avail;
-  if(theme==='SWARM')pool=avail.filter(e=>e.w<=2.5);
+  if(theme==='AIR RAID')pool=flyers;
+  if(theme==='SWARM')pool=avail.filter(e=>e.w<=2.5&&!e.fly);
   if(theme==='ARMORED')pool=avail.filter(e=>e.armor>=0.15);
   if(!pool.length)pool=avail;
   const sorted=[...pool].sort((a,b)=>b.unlock-a.unlock);
@@ -477,7 +480,7 @@ function damageEnemy(e,dmg,dtype,opts){
   }
   e.hp-=final;
   e.flash=0.1;
-  if(final>=1&&G.texts.length<60&&Math.random()<0.55)
+  if(final>=1&&G.texts.length<(LOW_FX?30:60)&&Math.random()<(LOW_FX?0.25:0.55))
     addText(e.x+rnd(-8,8),e.y-e.size-8,fmt(final),dtype==='magic'?'#9ad4ff':'#fff',0.8);
   if(e.hp<=0)killEnemy(e);
 }
@@ -555,8 +558,10 @@ function damageAlly(t,dmg){
 
 /* ================= FX helpers ================= */
 function burst(x,y,n,col){
+  if(LOW_FX)n=Math.ceil(n/2);
+  const cap=LOW_FX?220:520;
   for(let i=0;i<n;i++){
-    if(G.parts.length>520)return;
+    if(G.parts.length>cap)return;
     const a=Math.random()*Math.PI*2,s=rnd(20,110);
     G.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-30,life:rnd(0.3,0.8),maxLife:0.8,col,sz:rnd(1.5,3.5)});
   }
@@ -569,7 +574,7 @@ function addFx(f){if(G.fx.length<90)G.fx.push(f);}
 
 /* ================= TOWER FIRE ================= */
 function towerFire(t,st,def){
-  const inRange=G.enemies.filter(e=>!e.dead&&dist2(t.x,t.y,e.x,e.y)<st.range*st.range);
+  const inRange=G.enemies.filter(e=>!e.dead&&!(e.def.fly&&def.targets!=='both')&&dist2(t.x,t.y,e.x,e.y)<st.range*st.range);
   if(!inRange.length)return false;
   let tgt;
   if(def.id==='ballista')tgt=inRange.reduce((a,b)=>a.hp>b.hp?a:b);
@@ -583,7 +588,7 @@ function towerFire(t,st,def){
         const tg=i===0?tgt:(inRange[Math.floor(Math.random()*inRange.length)]);
         G.projs.push({kind:'arrow',x:t.x,y:t.y-30,tgt:tg,lx:tg.x,ly:tg.y,spd:430,dmg,dtype:'phys'});
       }
-      addFx({kind:'muzzle',x:t.x,y:t.y-30,ang:t.ang,life:0.08,col:'#e8dcb0'});
+      if(!LOW_FX)addFx({kind:'muzzle',x:t.x,y:t.y-30,ang:t.ang,life:0.08,col:'#e8dcb0'});
       SFXp('arrow');break;
     case 'frost':
       G.projs.push({kind:'shard',x:t.x,y:t.y-32,tgt,lx:tgt.x,ly:tgt.y,spd:360,dmg,dtype:'magic',slow:st.slow,slowDur:st.slowDur});
@@ -626,8 +631,8 @@ function towerFire(t,st,def){
     case 'flame':{
       damageEnemy(tgt,dmg,'magic');
       tgt.burnT=st.burnDur;tgt.burnDps=Math.max(tgt.burnDps,st.burn*t.auraMul*(1+relicVal('engineering')));
-      for(let i=0;i<2;i++){
-        if(G.parts.length<520){
+      for(let i=0;i<(LOW_FX?1:2);i++){
+        if(G.parts.length<(LOW_FX?220:520)){
           const a=t.ang+rnd(-0.25,0.25),s=rnd(120,200);
           G.parts.push({x:t.x+Math.cos(t.ang)*14,y:t.y-24+Math.sin(t.ang)*14,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rnd(0.2,0.45),maxLife:0.45,col:pick(['#ffb02a','#ff7a2a','#ffd75e']),sz:rnd(2,4),glow:true});
         }
@@ -883,7 +888,7 @@ function subStep(dt){
         burst(p.x1,p.y1,p.kind==='glob'?8:12,col);
         if(p.kind==='ball')G.shake=Math.max(G.shake,2);
         for(const e of G.enemies){
-          if(e.dead)continue;
+          if(e.dead||e.def.fly)continue; // ground bursts can't reach flyers
           if(dist2(e.x,e.y,p.x1,p.y1)<p.splash*p.splash){
             damageEnemy(e,p.dmg,p.dtype);
             if(p.poison&&!e.dead){
@@ -1057,6 +1062,7 @@ function subStep(dt){
       const seek=def.melee?CFG.AGGRO_R:st.range;
       for(const e of G.enemies){
         if(e.dead||e.pi!==tr.pi)continue;
+        if(e.def.fly&&def.melee)continue; // melee can't reach the sky
         const q=dist2(tr.x,tr.y,e.x,e.y);
         if(q<seek*seek&&q<bd){bd=q;best=e;}
       }
@@ -1067,7 +1073,7 @@ function subStep(dt){
       const reach=def.melee?CFG.ENGAGE_R:st.range;
       if(q<=reach){
         tr.state='fight';
-        if(def.melee&&!tr.foe.blk)tr.foe.blk=tr;
+        if(def.melee&&!tr.foe.blk&&!tr.foe.def.fly)tr.foe.blk=tr;
         tr.atkCd-=dt;
         if(tr.atkCd<=0&&def.dmg>0){
           tr.atkCd=def.rate;
@@ -1153,6 +1159,7 @@ function subStep(dt){
     let foe=null,bd=1e12;
     for(const e of G.enemies){
       if(e.dead)continue;
+      if(e.def.fly&&def.melee)continue; // melee heroes can't reach flyers
       if(dist2(h.homeX,h.homeY,e.x,e.y)>190*190)continue;
       const q=dist2(h.x,h.y,e.x,e.y);
       if(q<bd){bd=q;foe=e;}
@@ -1162,7 +1169,7 @@ function subStep(dt){
     if(foe){
       const q=Math.sqrt(dist2(h.x,h.y,foe.x,foe.y));
       if(q<=reach){
-        if(def.melee&&!foe.blk)foe.blk=h;
+        if(def.melee&&!foe.blk&&!foe.def.fly)foe.blk=h;
         if(h.atkCd<=0){
           h.atkCd=def.rate;h.swing=0.2;
           let dmg=st.dmg*(G.ragnarokT>0?1.5:1);
@@ -1215,7 +1222,7 @@ function saveGame(){
       towers:G.towers.map(t=>({id:t.id,c:t.c,r:t.r,lvl:t.lvl})),
       troopLvl:G.troopLvl,desired:G.desired,rally:G.rally,
       heroes:G.heroes.map(h=>({id:h.id,lvl:h.lvl,recruited:h.recruited})),
-      relics:G.relics,
+      relics:G.relics,spun:G.spun,
       kills:G.kills,bossKills:G.bossKills,goldEarned:G.goldEarned,
       autoWave:G.autoWave,speed:G.speed};
     localStorage.setItem(saveKey(),JSON.stringify(s));
@@ -1231,7 +1238,7 @@ function loadGame(mapId){
     newGame(mapId);
     G.gold=s.gold;G.lives=s.lives;G.wave=s.wave;
     G.kills=s.kills||0;G.bossKills=s.bossKills||0;G.goldEarned=s.goldEarned||0;
-    G.autoWave=s.autoWave!==false;G.speed=s.speed||1;
+    G.autoWave=s.autoWave!==false;G.speed=s.speed||1;G.spun=!!s.spun;
     if(Array.isArray(s.rally))G.rally=MAP.P.map((p,i)=>clamp(s.rally[i]||p.total*0.5,40,p.total-60));
     Object.assign(G.troopLvl,s.troopLvl||{});
     Object.assign(G.desired,s.desired||{});

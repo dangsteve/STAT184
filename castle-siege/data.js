@@ -11,6 +11,8 @@ const CFG = {
   INTERMISSION: 9, MAX_TOWER_LVL: 5, MAX_TROOP_LVL: 9, MAX_HERO_LVL: 40,
 };
 
+let LOW_FX=false; // set true on touch devices: fewer particles & flashes
+
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
 const lerp=(a,b,t)=>a+(b-a)*t;
@@ -134,19 +136,19 @@ function initMapRuntime(def){
    TOWERS — 9 types, 5 levels each
    ============================================================ */
 const TOWERS=[
- {id:'archer', name:'Archer Tower',  cost:70,  dmg:8,   rate:1.5,  range:150, dtype:'phys',  proj:'arrow', snd:'arrow',
+ {id:'archer', name:'Archer Tower',  cost:70,  dmg:8,   rate:1.5,  range:150, dtype:'phys',  proj:'arrow', snd:'arrow', targets:'both',
   desc:'Fast single-target arrows. Lv5 fires twin shots.', hue:'#c9a227'},
- {id:'cannon', name:'Cannon Tower',  cost:120, dmg:27,  rate:0.55, range:140, dtype:'phys',  proj:'ball', splash:55, snd:'cannon',
+ {id:'cannon', name:'Cannon Tower',  cost:120, dmg:27,  rate:0.55, range:140, dtype:'phys',  proj:'ball', splash:55, snd:'cannon', targets:'ground',
   desc:'Lobbed cannonballs with splash damage.', hue:'#7a7f8a'},
- {id:'frost',  name:'Frost Spire',   cost:100, dmg:6,   rate:1.0,  range:135, dtype:'magic', proj:'shard', slow:0.35, slowDur:2.0, snd:'frost',
+ {id:'frost',  name:'Frost Spire',   cost:100, dmg:6,   rate:1.0,  range:135, dtype:'magic', proj:'shard', slow:0.35, slowDur:2.0, snd:'frost', targets:'both',
   desc:'Chills enemies, slowing their march.', hue:'#69c8e8'},
- {id:'flame',  name:'Flame Brazier', cost:110, dmg:3.6, rate:6,    range:100, dtype:'magic', proj:'flame', burn:6, burnDur:2.5, snd:'flame',
+ {id:'flame',  name:'Flame Brazier', cost:110, dmg:3.6, rate:6,    range:100, dtype:'magic', proj:'flame', burn:6, burnDur:2.5, snd:'flame', targets:'ground',
   desc:'Torrent of fire that leaves foes burning.', hue:'#e8712a'},
- {id:'ballista',name:'Ballista',     cost:160, dmg:48,  rate:0.4,  range:235, dtype:'phys',  proj:'bolt', pierce:3, snd:'ballista',
+ {id:'ballista',name:'Ballista',     cost:160, dmg:48,  rate:0.4,  range:235, dtype:'phys',  proj:'bolt', pierce:3, snd:'ballista', targets:'both',
   desc:'Huge bolts that skewer several enemies.', hue:'#a8743a'},
- {id:'poison', name:'Alchemy Lab',   cost:130, dmg:6,   rate:0.6,  range:150, dtype:'magic', proj:'glob', splash:42, poison:5, poisonDur:4, snd:'poison',
+ {id:'poison', name:'Alchemy Lab',   cost:130, dmg:6,   rate:0.6,  range:150, dtype:'magic', proj:'glob', splash:42, poison:5, poisonDur:4, snd:'poison', targets:'ground',
   desc:'Toxic flasks; poison stacks up to 6 times.', hue:'#7ec244'},
- {id:'storm',  name:'Storm Spire',   cost:180, dmg:14,  rate:0.85, range:165, dtype:'magic', proj:'zap', chain:4, snd:'zap',
+ {id:'storm',  name:'Storm Spire',   cost:180, dmg:14,  rate:0.85, range:165, dtype:'magic', proj:'zap', chain:4, snd:'zap', targets:'both',
   desc:'Lightning that chains between enemies.', hue:'#b48ce8'},
  {id:'mint',   name:'Gold Mint',     cost:150, income:9, rate:0, range:0, dtype:'none', proj:'none', snd:'mint_coin',
   desc:'Mints gold every 5s. Perfect while you multitask.', hue:'#e8c93a'},
@@ -336,12 +338,15 @@ const ENEMIES=[
  {id:'hobgob',  name:'Hobgoblin',    hp:56,  speed:67,  armor:0.1, gold:7,  leak:1, w:2.4, unlock:7,  kind:'biped', col:'#b0623c', size:11},
  {id:'shaman',  name:'Gnoll Shaman', hp:62,  speed:48,  armor:0,   gold:11, leak:1, w:3,   unlock:8,  kind:'biped', col:'#c48be0', size:11, healer:true},
  {id:'armskel', name:'Bone Guard',   hp:92,  speed:50,  armor:0.45,gold:10, leak:1, w:4,   unlock:10, kind:'biped', col:'#b8bcc8', size:11},
+ {id:'fellbat', name:'Fell Bat',     hp:42,  speed:102, armor:0,   gold:9,  leak:1, w:2.5, unlock:11, kind:'flyer', col:'#6a5a8a', size:10, fly:true},
  {id:'wraith',  name:'Wraith',       hp:78,  speed:90,  armor:0.2, gold:12, leak:1, w:3.5, unlock:12, kind:'ghost', col:'#9adcd4', size:11},
  {id:'troll',   name:'Cave Troll',   hp:230, speed:44,  armor:0.2, gold:17, leak:2, w:8,   unlock:14, kind:'big',   col:'#5a8a6a', size:15, regen:0.008},
  {id:'dknight', name:'Dark Knight',  hp:270, speed:55,  armor:0.45,gold:19, leak:2, w:9,   unlock:16, kind:'biped', col:'#3c3f52', size:12},
+ {id:'gargoyle',name:'Gargoyle',     hp:185, speed:58,  armor:0.4, gold:16, leak:2, w:7,   unlock:17, kind:'flyer', col:'#8a8578', size:13, fly:true},
  {id:'ogre',    name:'Ogre',         hp:430, speed:38,  armor:0.25,gold:23, leak:3, w:14,  unlock:18, kind:'big',   col:'#c2925a', size:17},
- {id:'harpy',   name:'Harpy',        hp:95,  speed:106, armor:0,   gold:13, leak:1, w:4,   unlock:20, kind:'ghost', col:'#d8788a', size:11},
+ {id:'harpy',   name:'Harpy',        hp:95,  speed:106, armor:0,   gold:13, leak:1, w:4,   unlock:20, kind:'ghost', col:'#d8788a', size:11, fly:true},
  {id:'golem',   name:'Stone Golem',  hp:720, speed:30,  armor:0.6, gold:32, leak:3, w:22,  unlock:24, kind:'big',   col:'#8a8578', size:18},
+ {id:'wyvern',  name:'Storm Wyvern', hp:540, speed:68,  armor:0.25,gold:28, leak:3, w:16,  unlock:26, kind:'drake', col:'#4a7a9a', size:16, fly:true},
 ];
 const ENEMY_BY={};ENEMIES.forEach(e=>ENEMY_BY[e.id]=e);
 

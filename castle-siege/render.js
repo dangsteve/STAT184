@@ -139,9 +139,10 @@ function drawTowerFallback(c,t,def,lvl){
 /* ---------- enemies ---------- */
 function drawEnemy(c,e){
   const x=e.x,y=e.y,s=e.size,def=e.def;
-  const bob=Math.sin(e.anim*6)*1.5;
+  const bob=Math.sin(e.anim*6)*(e.def.fly?3:1.5);
   c.save();c.translate(x,y);
-  c.fillStyle='rgba(0,0,0,0.28)';c.beginPath();c.ellipse(0,s*0.55,s*0.9,s*0.32,0,0,7);c.fill();
+  if(e.def.fly){c.fillStyle='rgba(0,0,0,0.16)';c.beginPath();c.ellipse(0,s*0.55,s*0.6,s*0.2,0,0,7);c.fill();}
+  else{c.fillStyle='rgba(0,0,0,0.28)';c.beginPath();c.ellipse(0,s*0.55,s*0.9,s*0.32,0,0,7);c.fill();}
   if(e.rarity){
     const col=e.rarity==='champ'?'255,215,94':'200,139,255';
     const pu=0.35+Math.sin(G.time*5)*0.12;
@@ -163,9 +164,35 @@ function drawEnemy(c,e){
     c.strokeStyle='rgba(150,90,220,'+pu+')';c.lineWidth=3;
     c.beginPath();c.ellipse(0,s*0.55,s*1.35,s*0.5,0,0,7);c.stroke();
   }
-  c.translate(0,bob);
+  c.translate(0,bob+(def.fly?-18:0));
   const frozen=e.slowP>=0.95;
-  if(def.kind==='beast'){
+  if(def.kind==='flyer'){
+    const w=Math.sin(e.anim*12)*s*0.55;
+    for(const sd of [-1,1]){
+      oShape(c,shade(def.col,-16),cc=>{
+        cc.moveTo(sd*s*0.3,-s*0.25);
+        cc.quadraticCurveTo(sd*s*1.5,-s*0.9-w,sd*s*1.35,-s*0.05+w*0.4);
+        cc.quadraticCurveTo(sd*s*0.9,-s*0.05,sd*s*0.3,s*0.1);
+        cc.closePath();
+      });
+      c.strokeStyle=shade(def.col,-48);c.lineWidth=1.5;
+      c.beginPath();c.moveTo(sd*s*0.4,-s*0.2);c.quadraticCurveTo(sd*s*0.95,-s*0.5-w*0.6,sd*s*1.2,-s*0.35-w*0.8);c.stroke();
+    }
+    oShape(c,def.col,cc=>{cc.ellipse(0,0,s*0.55,s*0.42,0,0,7);});
+    c.fillStyle=shade(def.col,-24);
+    c.beginPath();c.ellipse(0,s*0.12,s*0.48,s*0.2,0,0,Math.PI);c.fill();
+    oShape(c,shade(def.col,14),cc=>{cc.arc(s*0.45,-s*0.25,s*0.3,0,7);});
+    if(def.armor>=0.3){
+      c.fillStyle='rgba(200,205,220,0.55)';
+      c.beginPath();c.ellipse(0,-s*0.05,s*0.45,s*0.3,0,0,7);c.fill();
+    }
+    c.fillStyle='#ffd75e';
+    c.beginPath();c.arc(s*0.55,-s*0.3,1.8,0,7);c.fill();
+    for(const sd of [-1,1]){
+      c.fillStyle=shade(def.col,-30);
+      c.beginPath();c.moveTo(sd*s*0.2,-s*0.5);c.lineTo(sd*s*0.32,-s*0.85);c.lineTo(sd*s*0.42,-s*0.5);c.closePath();c.fill();
+    }
+  }else if(def.kind==='beast'){
     const leg=frozen?0:Math.sin(e.anim*8)*3;
     c.strokeStyle=OUT;c.lineWidth=3.5;
     c.beginPath();c.moveTo(-s*0.5,0);c.lineTo(-s*0.5+leg,s*0.7);c.moveTo(s*0.4,0);c.lineTo(s*0.4-leg,s*0.7);c.stroke();

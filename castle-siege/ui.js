@@ -35,7 +35,7 @@ function iconHtmlInto(el,kind,id,size,fallback){
 window.addEventListener('DOMContentLoaded',()=>{
   canvas=$('game');ctx=canvas.getContext('2d');
   try{if(typeof SpriteLib!=='undefined')SpriteLib.build();}catch(err){console.warn('SpriteLib.build failed',err);}
-  if(IS_TOUCH)document.body.classList.add('touch');
+  if(IS_TOUCH){document.body.classList.add('touch');LOW_FX=true;}
   buildTowerCards();
   buildSideBars();
   buildSpellBar();
@@ -160,7 +160,9 @@ function beginRun(mapId,cont,peak){
   UIS.mode='none';UIS.selTower=null;
   buildArmyCards();buildHeroCards();buildRelicCards();refreshCards();
   hideTowerDetail();setCursorHint('');
+  closeMobilePanel();
   SFXp('horn_wave');
+  if(!cont&&G&&!G.spun)showWheel();
 }
 function onGameOver(){
   const ov=$('overlay');
@@ -209,18 +211,48 @@ function bindHud(){
   };
   $('btnAuto').onclick=()=>{if(G)G.autoWave=!G.autoWave;};
   for(const t of ['towers','army','heroes','relics']){
-    $('tab-'+t).onclick=()=>{
-      UIS.tab=t;
-      setDock(true);
-      for(const x of ['towers','army','heroes','relics']){
-        $('tab-'+x).classList.toggle('active',x===t);
-        $('pane-'+x).style.display=x===t?'flex':'none';
-      }
-      SFXp('ui_tab');
-    };
+    $('tab-'+t).onclick=()=>{setDock(true);switchTab(t);};
   }
+  bindMobilePanel();
   $('btnDock').onclick=()=>setDock($('dockbody').style.display==='none');
   $('btnRally').onclick=()=>{UIS.mode='rally';UIS.selTower=null;if(G)G.targetMode=null;setCursorHint('Click near a road to set that road’s rally point');};
+}
+function switchTab(t){
+  UIS.tab=t;
+  for(const x of ['towers','army','heroes','relics']){
+    const tb=$('tab-'+x);
+    if(tb)tb.classList.toggle('active',x===t);
+    $('pane-'+x).style.display=x===t?'flex':'none';
+  }
+  document.querySelectorAll('.mp-tab').forEach(b=>b.classList.toggle('active',b.dataset.mp===t));
+  SFXp('ui_tab');
+}
+
+/* ================= mobile management panel ================= */
+let mpWasPaused=false;
+function bindMobilePanel(){
+  document.querySelectorAll('.mp-tab').forEach(b=>{b.onclick=()=>switchTab(b.dataset.mp);});
+  $('mpClose').onclick=closeMobilePanel;
+}
+function openMobilePanel(tab){
+  const mp=$('mobilePanel');
+  if(mp.style.display!=='flex'){
+    $('mpBody').appendChild($('dockbody'));
+    $('dockbody').style.display='block';
+    mp.style.display='flex';
+    if(G){mpWasPaused=G.paused;G.paused=true;}
+    SFXp('ui_open');
+  }
+  switchTab(tab);
+  refreshCards();
+}
+function closeMobilePanel(){
+  const mp=$('mobilePanel');
+  if(mp.style.display!=='flex')return;
+  mp.style.display='none';
+  $('dock').appendChild($('dockbody'));
+  if(G)G.paused=mpWasPaused;
+  SFXp('ui_close');
 }
 function setDock(open,silent){
   $('dockbody').style.display=open?'block':'none';
@@ -268,8 +300,10 @@ function buildTowerCards(){
     d.className='card';
     d.id='tc-'+def.id;
     d.title=def.desc;
+    const chip=def.targets?(def.targets==='both'?'⛰＋✈ air':'⛰ ground'):(def.id==='mint'?'🪙 income':'✨ support');
     d.innerHTML='<div class="card-icon" id="ti-'+def.id+'"></div>'+
       '<div class="card-name">'+def.name+'</div>'+
+      '<div class="tgt-chip">'+chip+'</div>'+
       '<div class="card-cost">'+def.cost+'g</div>';
     d.onclick=()=>selectBuildType(def);
     box.appendChild(d);
@@ -320,10 +354,22 @@ function refreshSideBars(){
   });
   const R=$('sideR');
   const hs=G.heroes.filter(h=>h.recruited);
-  const sig=hs.map(h=>h.id).join(',');
+  const sig='m,'+hs.map(h=>h.id).join(',');
   if(R.dataset.sig!==sig){
     R.dataset.sig=sig;
     R.innerHTML='';
+    /* management buttons: the phone's replacement for the bottom dock */
+    const mgmt=[['⚔️','army','Army'],['🦸','heroes','Heroes'],['💎','relics','Relics']];
+    for(const [ico,tab,ttl] of mgmt){
+      const b=document.createElement('div');
+      b.className='side-card mgmt';b.textContent=ico;b.title=ttl;
+      b.onclick=()=>openMobilePanel(tab);
+      R.appendChild(b);
+    }
+    const rb=document.createElement('div');
+    rb.className='side-card mgmt';rb.textContent='🚩';rb.title='Set rally point';
+    rb.onclick=()=>{UIS.mode='rally';if(G)G.targetMode=null;setCursorHint('Tap near a road to set that road’s rally point');SFXp('ui_click');};
+    R.appendChild(rb);
     for(const h of hs){
       const d=document.createElement('div');
       d.className='side-card hero';d.dataset.hid=h.id;d.title=h.hdef.name+' — tap, then tap the map to move';
@@ -365,6 +411,7 @@ function showTowerDetail(t){
   const box=$('towerDetail');
   let stats='';
   const dmul=t.auraMul*(1+relicVal('engineering'));
+  if(def.targets)stats+='<span>'+(def.targets==='both'?'⛰＋✈ hits air':'⛰ ground only')+'</span>';
   if(st.dmg)stats+='<span>⚔ '+fmt(st.dmg*dmul)+(st.rate?' × '+st.rate.toFixed(1)+'/s':'')+'</span>';
   if(st.range)stats+='<span>◎ '+Math.round(st.range)+'</span>';
   if(st.splash)stats+='<span>💥 '+Math.round(st.splash)+'</span>';
@@ -462,9 +509,11 @@ function buildArmyCards(){
     d.className='card troop-card';
     d.id='ac-'+def.id;
     d.title=def.desc;
+    const tchip=def.heal?'💚 support':(def.melee?'⚔ melee':'🏹 ranged • hits ✈');
     d.innerHTML=
       '<div class="card-icon" id="ai-'+def.id+'"></div>'+
       '<div class="card-name">'+def.name+' <span class="lvl-badge" id="al-'+def.id+'"></span></div>'+
+      '<div class="tgt-chip">'+tchip+'</div>'+
       '<div class="troop-stats" id="as-'+def.id+'"></div>'+
       '<div class="stepper"><button class="step-btn" id="dec-'+def.id+'">−</button>'+
       '<span class="step-val" id="cnt-'+def.id+'">0</span>'+
@@ -639,6 +688,126 @@ function refreshCards(){
 }
 function onWaveEnd(){refreshCards();}
 
+/* ================= wheel of fortune ================= */
+const WHEEL_SLICES=[
+ {label:'150g',col:'#41639a',w:20,apply(){G.gold+=150;return '+150 gold!';}},
+ {label:'Troop +1',col:'#7a5ac0',w:13,apply(){
+   const cand=TROOPS.filter(t=>t.unlock<=G.wave&&G.troopLvl[t.id]<CFG.MAX_TROOP_LVL);
+   const t=cand.length?pick(cand):null;
+   if(!t){G.gold+=200;return '+200 gold!';}
+   G.troopLvl[t.id]++;return t.name+'s +1 level!';}},
+ {label:'250g',col:'#3a7a44',w:16,apply(){G.gold+=250;return '+250 gold!';}},
+ {label:'Hero +2',col:'#8a63d8',w:11,apply(){
+   const hs=G.heroes.filter(h=>h.recruited);
+   const h=hs.length?hs[0]:null;
+   if(!h){G.gold+=250;return '+250 gold!';}
+   h.lvl=Math.min(CFG.MAX_HERO_LVL,h.lvl+2);
+   const st=heroStat(h.hdef,h.lvl);h.maxHp=st.hp;h.hp=st.hp;
+   return h.hdef.name+' +2 levels!';}},
+ {label:'400g',col:'#41639a',w:12,apply(){G.gold+=400;return '+400 gold!';}},
+ {label:'Relic +1',col:'#b06a3a',w:9,apply(){
+   const cand=RELICS.filter(r=>G.relics[r.id]<r.max);
+   const r=cand.length?pick(cand):null;
+   if(!r){G.gold+=300;return '+300 gold!';}
+   G.relics[r.id]++;
+   if(r.id==='walls')G.lives=Math.min(maxLives(),G.lives+r.per);
+   return r.name+' tier '+G.relics[r.id]+'!';}},
+ {label:'600g',col:'#3a7a44',w:9,apply(){G.gold+=600;return '+600 gold!';}},
+ {label:'JACKPOT',col:'#c9a227',w:3,apply(){
+   G.gold+=1000;
+   TROOPS.forEach(t=>{if(G.troopLvl[t.id]<CFG.MAX_TROOP_LVL)G.troopLvl[t.id]++;});
+   for(const h of G.heroes)if(h.recruited){
+     h.lvl=Math.min(CFG.MAX_HERO_LVL,h.lvl+1);
+     const st=heroStat(h.hdef,h.lvl);h.maxHp=st.hp;h.hp=st.hp;
+   }
+   RELICS.forEach(r=>{if(G.relics[r.id]<r.max)G.relics[r.id]++;});
+   G.lives=maxLives();
+   return '🌟 JACKPOT! +1000g and +1 to EVERYTHING! 🌟';}},
+];
+function drawWheel(cv,rot){
+  const c=cv.getContext('2d');
+  const R=cv.width/2,cx=R,cy=R;
+  c.clearRect(0,0,cv.width,cv.height);
+  const total=WHEEL_SLICES.reduce((s,x)=>s+x.w,0);
+  let a=rot;
+  for(const sl of WHEEL_SLICES){
+    const span=sl.w/total*Math.PI*2;
+    c.beginPath();c.moveTo(cx,cy);c.arc(cx,cy,R-8,a,a+span);c.closePath();
+    c.fillStyle=sl.col;c.fill();
+    c.strokeStyle='rgba(18,13,26,0.8)';c.lineWidth=2;c.stroke();
+    if(sl.label==='JACKPOT'){
+      c.save();c.clip();
+      c.fillStyle='rgba(255,255,255,0.25)';
+      c.beginPath();c.moveTo(cx,cy);c.arc(cx,cy,R-8,a,a+span*0.5);c.closePath();c.fill();
+      c.restore();
+    }
+    c.save();
+    c.translate(cx,cy);c.rotate(a+span/2);
+    c.textAlign='right';c.textBaseline='middle';
+    c.font=(sl.label==='JACKPOT'?'bold 13px':'bold 12px')+' Georgia, serif';
+    c.fillStyle=sl.label==='JACKPOT'?'#fff2c0':'#f0e8d0';
+    c.strokeStyle='rgba(0,0,0,0.55)';c.lineWidth=3;
+    c.strokeText(sl.label,R-18,0);
+    c.fillText(sl.label,R-18,0);
+    c.restore();
+    a+=span;
+  }
+  /* rim + hub */
+  c.beginPath();c.arc(cx,cy,R-6,0,7);
+  c.strokeStyle='#b89c44';c.lineWidth=5;c.stroke();
+  c.beginPath();c.arc(cx,cy,16,0,7);
+  c.fillStyle='#2b2442';c.fill();
+  c.strokeStyle='#b89c44';c.lineWidth=3;c.stroke();
+  /* pointer (fixed, top) */
+  c.beginPath();c.moveTo(cx-13,4);c.lineTo(cx+13,4);c.lineTo(cx,30);c.closePath();
+  c.fillStyle='#d83a3a';c.fill();
+  c.strokeStyle='rgba(18,13,26,0.9)';c.lineWidth=2;c.stroke();
+}
+function showWheel(){
+  const ov=$('wheelOverlay'),cv=$('wheelCv');
+  ov.style.display='flex';
+  $('wheelResult').textContent='';
+  $('btnSpin').disabled=false;
+  if(G)G.paused=true;
+  drawWheel(cv,0);
+  $('btnSpin').onclick=()=>{
+    $('btnSpin').disabled=true;
+    G.spun=true;
+    /* pick weighted outcome, then animate the wheel to land on it */
+    const total=WHEEL_SLICES.reduce((s,x)=>s+x.w,0);
+    let roll=Math.random()*total,idx=0;
+    for(let i=0;i<WHEEL_SLICES.length;i++){roll-=WHEEL_SLICES[i].w;if(roll<=0){idx=i;break;}}
+    let startA=0;
+    for(let i=0;i<idx;i++)startA+=WHEEL_SLICES[i].w/total*Math.PI*2;
+    const span=WHEEL_SLICES[idx].w/total*Math.PI*2;
+    const center=startA+span*rnd(0.25,0.75);
+    const pointer=-Math.PI/2;
+    const target=pointer-center+Math.PI*2*5; // 5 extra revolutions
+    const dur=3600;
+    const t0=performance.now();
+    let lastIdx=-1;
+    (function anim(now){
+      const u=Math.min(1,(now-t0)/dur);
+      const e2=1-Math.pow(1-u,3);
+      const rot=target*e2;
+      drawWheel(cv,rot);
+      /* tick when the slice under the pointer changes */
+      const under=(((pointer-rot)%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+      let acc=0,ci=0;
+      for(let i=0;i<WHEEL_SLICES.length;i++){const s2=WHEEL_SLICES[i].w/total*Math.PI*2;if(under>=acc&&under<acc+s2){ci=i;break;}acc+=s2;}
+      if(ci!==lastIdx){lastIdx=ci;SFXp('ui_click');}
+      if(u<1){requestAnimationFrame(anim);return;}
+      const msg=WHEEL_SLICES[idx].apply();
+      $('wheelResult').textContent=msg;
+      setBanner('🎡 '+msg,WHEEL_SLICES[idx].label==='JACKPOT');
+      SFXp(WHEEL_SLICES[idx].label==='JACKPOT'?'horn_victory':'chest');
+      saveGame();
+      refreshCards();
+      setTimeout(()=>{ov.style.display='none';if(G)G.paused=false;},2200);
+    })(t0);
+  };
+}
+
 /* ================= canvas input ================= */
 function canvasPos(ev){
   const r=canvas.getBoundingClientRect();
@@ -705,7 +874,7 @@ function bindCanvas(){
 function bindKeys(){
   window.addEventListener('keydown',ev=>{
     if(!started||!G)return;
-    if(ev.key==='Escape'){cancelMode();UIS.mode='none';UIS.selTower=null;hideTowerDetail();setCursorHint('');return;}
+    if(ev.key==='Escape'){cancelMode();UIS.mode='none';UIS.selTower=null;hideTowerDetail();setCursorHint('');closeMobilePanel();return;}
     if(G.over)return;
     else if(ev.key===' '){ev.preventDefault();G.paused=!G.paused;}
     else if(ev.key==='f'||ev.key==='F'){G.speed=G.speed>=3?1:G.speed+1;}

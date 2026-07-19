@@ -165,6 +165,47 @@
   .side-card .sc-cost{font-size:9.5px;color:#ffd75e;font-weight:bold;line-height:1;}
   .side-card.hero{border-color:#5a7aae;}
   .side-card.hero.dead{opacity:0.35;}
+  .side-card.mgmt{width:44px;padding:6px 2px;font-size:19px;background:linear-gradient(180deg,#453c68,#332b50);}
+  /* phones with side strips: the bottom dock disappears entirely */
+  body.sidebars #dock{display:none;}
+  body.sidebars #stage{padding-bottom:0;}
+  body.sidebars #spellbar{bottom:max(10px, calc(env(safe-area-inset-bottom,0px) + 8px));}
+  body.sidebars #sideL{bottom:8px;}
+  body.sidebars #sideR{bottom:238px;}
+  /* targeting chips */
+  .tgt-chip{font-size:9px;color:#9ad4ff;background:rgba(20,16,32,0.6);border:1px solid #3d3758;
+    padding:0 6px;border-radius:8px;line-height:1.5;}
+  /* ============ mobile management panel ============ */
+  #mobilePanel{display:none;position:fixed;inset:3%;z-index:60;flex-direction:column;
+    background:linear-gradient(180deg,#2b2442,#1a1530);border:2px solid #8a63d8;border-radius:14px;
+    box-shadow:0 0 60px rgba(0,0,0,0.7);padding:8px;}
+  #mpHead{display:flex;align-items:center;gap:6px;padding:2px 4px 8px;}
+  .mp-tab{padding:8px 16px;font-size:14px;font-weight:bold;color:#9a92b8;background:#1c1830;
+    border:1px solid #4a3f68;border-radius:8px;}
+  .mp-tab.active{color:#ffd75e;border-color:#ffd75e;background:rgba(255,215,94,0.08);}
+  #mpClose{margin-left:auto;background:linear-gradient(180deg,#8f4444,#6d3232);border:1px solid #b85a5a;
+    color:#ffd8d8;font-size:16px;padding:7px 16px;border-radius:8px;}
+  #mpPaused{font-size:11px;color:#8a82a8;margin-left:8px;}
+  #mpBody{flex:1;min-height:0;overflow:auto;}
+  #mpBody #dockbody{max-height:none!important;padding:0;}
+  #mpBody .pane{flex-wrap:wrap;overflow:visible;}
+  /* ============ wheel of fortune ============ */
+  #wheelOverlay{display:none;position:fixed;inset:0;background:rgba(10,7,18,0.9);z-index:80;
+    align-items:center;justify-content:center;}
+  .wheel-box{background:linear-gradient(180deg,#2b2442,#1a1530);border:2px solid #b89c44;border-radius:16px;
+    padding:14px 22px 18px;text-align:center;box-shadow:0 0 70px rgba(255,215,94,0.25);max-height:96vh;overflow:auto;}
+  .wheel-box h1{font-size:22px;color:#ffd75e;margin-bottom:2px;}
+  .wheel-box .wsub{font-size:12px;color:#9a92b8;margin-bottom:8px;}
+  #wheelCv{display:block;margin:0 auto;}
+  #wheelResult{min-height:26px;font-size:16px;font-weight:bold;color:#ffe8a0;margin-top:8px;}
+  #btnSpin{background:linear-gradient(180deg,#a04838,#7a3226);border:1px solid #d07858;color:#ffe8d8;
+    padding:10px 34px;font-size:17px;font-weight:bold;margin-top:8px;text-shadow:0 1px 2px rgba(0,0,0,0.6);}
+  #btnSpin:hover:not(:disabled){background:linear-gradient(180deg,#b85844,#8f3c2c);}
+  @media (max-height:560px){
+    .wheel-box{display:flex;align-items:center;gap:14px;text-align:left;padding:10px 16px;}
+    .wheel-box h1{font-size:17px;}
+    #wheelCv{width:230px;height:230px;}
+  }
   /* ============ rotate-your-phone overlay ============ */
   #rotateOverlay{display:none;position:fixed;inset:0;background:rgba(12,9,20,0.96);z-index:200;
     align-items:center;justify-content:center;text-align:center;color:#d8ccff;font-size:18px;line-height:1.6;padding:24px;}
@@ -299,6 +340,27 @@
     </div>
   </div>
 </div>
+<div id="mobilePanel">
+  <div id="mpHead">
+    <button class="mp-tab" data-mp="army">⚔️ Army</button>
+    <button class="mp-tab" data-mp="heroes">🦸 Heroes</button>
+    <button class="mp-tab" data-mp="relics">💎 Relics</button>
+    <span id="mpPaused">⏸ game paused</span>
+    <button id="mpClose">✕ Resume</button>
+  </div>
+  <div id="mpBody"></div>
+</div>
+<div id="wheelOverlay">
+  <div class="wheel-box">
+    <div>
+      <h1>🎡 Wheel of Fortune</h1>
+      <div class="wsub">One free spin per battle. Fortune favors the bold…</div>
+      <div id="wheelResult"></div>
+      <button id="btnSpin">SPIN!</button>
+    </div>
+    <canvas id="wheelCv" width="300" height="300"></canvas>
+  </div>
+</div>
 <div id="overlay"></div>
 <div id="rotateOverlay"><div>📱↻<br><b>Rotate your phone</b><br><span style="font-size:14px;color:#9a92b8">Castle Siege plays in landscape</span></div></div>
 <div id="helpOverlay">
@@ -334,6 +396,10 @@
       <li><b style="color:#c8a8ff">Shadow Wardens</b> rarely appear dragging a captive: slay one and a <b>Legendary Hero</b> (Aurelia, Karrgoth, or Morrigan) joins you — recorded in your <b>Vault forever</b>, free to summon in every future run.</li>
       <li>The <b>⭐ Peak button</b> on a battlefield restarts at wave 1 with your best-ever heroes, relics, troop levels and a rebuild budget — grind once, keep it always.</li>
     </ul>
+    <h3>✈ Flying enemies</h3>
+    <p>After the first boss, the sky fills: Fell Bats, Gargoyles, Harpies, Storm Wyverns. Only towers badged <b>⛰＋✈</b> and <b>ranged</b> troops/heroes can hit them — melee can't touch the sky, and flyers sail right over your blockers. Keep anti-air on every road and brace for AIR RAID waves.</p>
+    <h3>🎡 Wheel of Fortune</h3>
+    <p>Every new battle opens with one free spin — gold, troop levels, hero levels, relic tiers… and one tiny golden <b style="color:#ffd75e">JACKPOT</b> slice: +1000g and +1 to everything.</p>
     <h3>😎 Multitask mode</h3>
     <p>AUTO waves on → set army keep-counts → build Gold Mints → 3× speed → collapse the bottom panel (▼) and get to work. Check in to spend gold. Progress autosaves every wave, per battlefield.</p>
     <h3>Keys</h3>
