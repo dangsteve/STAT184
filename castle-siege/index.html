@@ -208,21 +208,30 @@
   body.touch .spell-btn{width:64px;height:64px;}
   body.touch .spell-btn.ult{width:74px;height:74px;}
   body.touch .x-btn{font-size:18px;padding:2px 8px;}
+  #spdCycle{display:none;}
   /* short landscape screens (phones): canvas-first layout */
   @media (max-height: 560px){
-    #hudbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;gap:5px;padding:3px 6px;min-height:34px;}
+    #hudbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;gap:4px;padding:3px 5px;min-height:34px;}
     #hudbar::-webkit-scrollbar{display:none;}
-    .stat{font-size:12.5px;flex-shrink:0;}
-    .hud-btn{padding:4px 7px;font-size:11px;flex-shrink:0;}
-    #btnWave{min-width:112px;}
-    .hud-spacer{min-width:6px;}
+    .stat{font-size:12px;flex-shrink:0;gap:2px;}
+    .stat .ico{font-size:12px;}
+    .hud-btn{padding:5px 6px;font-size:11px;flex-shrink:0;}
+    #btnWave{min-width:104px;}
+    .hud-spacer{min-width:4px;}
+    /* one cycling speed button instead of three */
+    #spd1,#spd2,#spd3{display:none;}
+    #spdCycle{display:inline-block;}
     /* dock floats over the stage instead of shrinking it */
     #dock{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(23,18,38,0.96);}
     #stage{padding-bottom:34px;} /* room for the dock bar */
-    #dockbody{max-height:44vh;overflow-y:auto;}
-    body.touch .card{width:112px;}
+    #dockbody{max-height:58vh;overflow-y:auto;}
+    body.touch .card{width:112px;padding:5px 5px 5px;gap:2px;}
+    body.touch .card-icon{width:28px;height:28px;}
+    body.touch .card-icon.big{width:34px;height:34px;}
     body.touch .hero-card{width:146px;}
     body.touch .relic-card{width:126px;}
+    body.touch .small-btn{padding:5px 9px;font-size:12px;}
+    body.touch .step-btn{width:26px;height:26px;font-size:14px;}
     body.touch .tab{padding:6px 10px;font-size:12.5px;}
     body.touch .spell-btn{width:52px;height:52px;}
     body.touch .spell-btn.ult{width:60px;height:60px;}
@@ -243,6 +252,7 @@
     <button class="hud-btn" id="spd1">1×</button>
     <button class="hud-btn" id="spd2">2×</button>
     <button class="hud-btn" id="spd3">3×</button>
+    <button class="hud-btn" id="spdCycle" title="Game speed — tap to cycle">1×</button>
     <button class="hud-btn" id="btnPause" title="Pause (Space)">⏸</button>
     <button class="hud-btn" id="btnSfx" title="Sound effects">🔊</button>
     <button class="hud-btn" id="btnMusic" title="Music">🎵</button>

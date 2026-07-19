@@ -184,6 +184,7 @@ function toggleHelp(){
 function bindHud(){
   $('btnPause').onclick=()=>{if(!G)return;G.paused=!G.paused;};
   for(const s of [1,2,3])$('spd'+s).onclick=()=>{if(G){G.speed=s;}};
+  $('spdCycle').onclick=()=>{if(G){G.speed=G.speed>=3?1:G.speed+1;SFXp('ui_click');}};
   $('btnSfx').onclick=()=>{
     if(typeof SFX2!=='undefined')SFX2.setEnabled(!SFX2.enabled);
     try{localStorage.setItem('cs2_sfx',(typeof SFX2!=='undefined'&&SFX2.enabled)?'1':'0');}catch(err){}
@@ -248,6 +249,8 @@ function refreshHud(){
     else btn.textContent='▶ Wave '+G.wave+' (+15g)';
   }
   for(const s of [1,2,3])$('spd'+s).classList.toggle('active',G.speed===s);
+  $('spdCycle').textContent=G.speed+'×';
+  $('spdCycle').classList.toggle('active',G.speed>1);
   $('btnAuto').classList.toggle('active',G.autoWave);
   $('btnAuto').textContent='AUTO'+(G.autoWave?' ✓':'');
   $('btnPause').textContent=G.paused?'▶':'⏸';
