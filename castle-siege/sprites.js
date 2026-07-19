@@ -1747,6 +1747,97 @@ const SpriteLib = (function () {
       g.fillStyle = '#e8b8ff';
       poly(g, [[16.6, 13.5], [19, 12.2], [21.4, 13.5], [19, 14.8]]); g.fill();
       poly(g, [[22.6, 13.5], [25, 12.2], [27.4, 13.5], [25, 14.8]]); g.fill();
+    },
+    aurelia: function (g) { // legendary: radiant gold winged crown, white-gold armor
+      glow(g, 22, 14, 16, '#ffe9a0', 0.5);
+      bustBase(g, '#e8c452', '#f0c8a8');
+      // flowing white hair
+      g.fillStyle = '#f4f0e4';
+      g.beginPath();
+      g.moveTo(12, 22); g.quadraticCurveTo(10, 5, 22, 4);
+      g.quadraticCurveTo(34, 5, 32, 22);
+      g.quadraticCurveTo(31, 10, 22, 9);
+      g.quadraticCurveTo(13, 10, 12, 22);
+      g.closePath(); g.fill(); outl(g, 2.2);
+      // winged crown
+      for (const sd of [-1, 1]) {
+        g.beginPath();
+        g.moveTo(22 + sd * 9, 9);
+        g.quadraticCurveTo(22 + sd * 18, 6, 22 + sd * 17, -3);
+        g.quadraticCurveTo(22 + sd * 13, 3, 22 + sd * 8, 4.5);
+        g.closePath();
+        g.fillStyle = '#ffd75e'; g.fill(); outl(g, 2);
+        g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 1.2;
+        g.beginPath(); g.moveTo(22 + sd * 10, 6.5); g.quadraticCurveTo(22 + sd * 15, 4, 22 + sd * 15, -1); g.stroke();
+      }
+      g.strokeStyle = GOLD; g.lineWidth = 2.2;
+      g.beginPath(); g.moveTo(13.6, 11.4); g.quadraticCurveTo(22, 7, 30.4, 11.4); g.stroke();
+      gem(g, 22, 9.2, 2.4, '#ffe9a0');
+      // serene eyes
+      g.fillStyle = 'rgba(20,14,26,0.85)';
+      g.beginPath(); g.arc(19, 15.5, 1.2, 0, Math.PI * 2); g.arc(25, 15.5, 1.2, 0, Math.PI * 2); g.fill();
+      shine(g, 17, 27, 3, 2, -0.5, 0.5);
+    },
+    karrgoth: function (g) { // legendary: dragon-skull helm, ember eyes, smoke
+      glow(g, 22, 15, 15, '#ff8a3a', 0.4);
+      bustBase(g, '#6a3428', null);
+      // dragon skull helm
+      g.fillStyle = '#d8ccb8';
+      g.beginPath();
+      g.moveTo(11, 22); g.quadraticCurveTo(8, 6, 22, 4);
+      g.quadraticCurveTo(36, 6, 33, 22);
+      g.lineTo(29, 17); g.lineTo(26, 22);
+      g.lineTo(22, 18); g.lineTo(18, 22);
+      g.lineTo(15, 17); g.closePath();
+      g.fill(); outl(g, 2.2);
+      g.fillStyle = 'rgba(20,14,26,0.2)';
+      g.beginPath(); g.moveTo(28, 7); g.quadraticCurveTo(34, 12, 33, 22); g.lineTo(29, 17); g.closePath(); g.fill();
+      // horns swept back
+      for (const sd of [-1, 1]) {
+        g.beginPath();
+        g.moveTo(22 + sd * 9, 8);
+        g.quadraticCurveTo(22 + sd * 19, 6, 22 + sd * 20, -2);
+        g.quadraticCurveTo(22 + sd * 14, 2, 22 + sd * 8, 4);
+        g.closePath();
+        g.fillStyle = '#b04a2a'; g.fill(); outl(g, 2);
+      }
+      // ember eyes in skull sockets
+      g.fillStyle = '#181428';
+      g.beginPath(); g.ellipse(18, 13.5, 3.2, 3.8, 0, 0, Math.PI * 2); g.ellipse(26, 13.5, 3.2, 3.8, 0, 0, Math.PI * 2); g.fill();
+      glow(g, 18, 13.5, 4, '#ff9a3a', 0.9); glow(g, 26, 13.5, 4, '#ff9a3a', 0.9);
+      g.fillStyle = '#ffd08a';
+      g.beginPath(); g.arc(18, 13.5, 1.6, 0, Math.PI * 2); g.arc(26, 13.5, 1.6, 0, Math.PI * 2); g.fill();
+      shine(g, 15, 7.5, 3, 1.6, -0.5, 0.4);
+    },
+    morrigan: function (g) { // legendary: raven-feather crown, pale queen, violet magic
+      glow(g, 22, 13, 15, '#9a5ae0', 0.45);
+      bustBase(g, '#2e2440', '#e8dce8');
+      // black feathered hair
+      g.fillStyle = '#221c30';
+      g.beginPath();
+      g.moveTo(11.5, 24); g.quadraticCurveTo(9, 5, 22, 4);
+      g.quadraticCurveTo(35, 5, 32.5, 24);
+      g.quadraticCurveTo(31, 10, 22, 9.5);
+      g.quadraticCurveTo(13, 10, 11.5, 24);
+      g.closePath(); g.fill(); outl(g, 2.2);
+      // raven-feather crown spikes
+      for (const [fx, fh] of [[14, 8], [18, 11], [22, 13], [26, 11], [30, 8]]) {
+        g.beginPath();
+        g.moveTo(fx - 2, 9); g.quadraticCurveTo(fx, 9 - fh, fx + 1.4, 9 - fh * 0.5);
+        g.quadraticCurveTo(fx + 2, 9 - fh * 0.2, fx + 2.4, 9);
+        g.closePath();
+        g.fillStyle = '#3a3050'; g.fill();
+        g.strokeStyle = OUT; g.lineWidth = 1.6; g.stroke();
+      }
+      g.strokeStyle = '#9a5ae0'; g.lineWidth = 1.8;
+      g.beginPath(); g.moveTo(13.6, 11.8); g.quadraticCurveTo(22, 8.2, 30.4, 11.8); g.stroke();
+      gem(g, 22, 10.2, 2.2, '#c88bff');
+      // violet eyes, dark lips
+      glow(g, 19, 15.5, 3.5, '#c060ff', 0.7); glow(g, 25, 15.5, 3.5, '#c060ff', 0.7);
+      g.fillStyle = '#e0b8ff';
+      g.beginPath(); g.arc(19, 15.5, 1.3, 0, Math.PI * 2); g.arc(25, 15.5, 1.3, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#6a3a5a';
+      rr(g, 20, 19.5, 4, 1.8, 0.9); g.fill();
     }
   };
 
@@ -1926,6 +2017,64 @@ const SpriteLib = (function () {
   };
   ICON_PAINT.misc = {
     gold: function (g) { coin(g, 22, 22, 13); },
+    fire: function (g) { // firestorm spell
+      glow(g, 22, 24, 15, '#ff8a3a', 0.5);
+      g.fillStyle = '#e85a20';
+      g.beginPath();
+      g.moveTo(22, 4);
+      g.bezierCurveTo(30, 14, 36, 20, 34, 29);
+      g.bezierCurveTo(33, 37, 28, 40, 22, 40);
+      g.bezierCurveTo(16, 40, 11, 37, 10, 29);
+      g.bezierCurveTo(9, 21, 14, 16, 16, 12);
+      g.bezierCurveTo(18, 15, 20, 15, 22, 4);
+      g.closePath(); g.fill(); outl(g, 2.2);
+      g.fillStyle = '#ffb02a';
+      g.beginPath();
+      g.moveTo(22, 15);
+      g.bezierCurveTo(27, 21, 29, 25, 28, 31);
+      g.bezierCurveTo(27, 36, 25, 37.5, 22, 37.5);
+      g.bezierCurveTo(19, 37.5, 17, 36, 16, 31);
+      g.bezierCurveTo(15, 26, 19, 21, 22, 15);
+      g.closePath(); g.fill();
+      g.fillStyle = '#ffe9a0';
+      g.beginPath(); g.ellipse(22, 32, 3.5, 5, 0, 0, Math.PI * 2); g.fill();
+    },
+    heal: function (g) { // sanctified ground spell
+      glow(g, 22, 22, 15, '#7ee08a', 0.5);
+      g.fillStyle = '#4aa858';
+      g.beginPath(); g.ellipse(22, 33, 14, 5.5, 0, 0, Math.PI * 2); g.fill(); outl(g, 2.2);
+      g.fillStyle = 'rgba(160,240,170,0.65)';
+      g.beginPath(); g.ellipse(22, 32, 9.5, 3.4, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#7ee08a';
+      rr(g, 18.5, 8, 7, 20, 3); g.fill();
+      rr(g, 12, 14.5, 20, 7, 3); g.fill();
+      g.strokeStyle = OUT; g.lineWidth = 2.2;
+      g.beginPath();
+      g.moveTo(18.5, 14.5); g.lineTo(18.5, 11); g.arcTo(18.5, 8, 22, 8, 3.5); g.arcTo(25.5, 8, 25.5, 11, 3.5); g.lineTo(25.5, 14.5);
+      g.lineTo(29, 14.5); g.arcTo(32, 14.5, 32, 18, 3.5); g.arcTo(32, 21.5, 29, 21.5, 3.5); g.lineTo(25.5, 21.5);
+      g.lineTo(25.5, 25); g.arcTo(25.5, 28, 22, 28, 3.5); g.arcTo(18.5, 28, 18.5, 25, 3.5); g.lineTo(18.5, 21.5);
+      g.lineTo(15, 21.5); g.arcTo(12, 21.5, 12, 18, 3.5); g.arcTo(12, 14.5, 15, 14.5, 3.5); g.closePath();
+      g.stroke();
+      shine(g, 20, 11, 2.4, 1.6, -0.5, 0.55);
+    },
+    ragnarok: function (g) { // ultimate: storm-wreathed rune bolt
+      glow(g, 22, 22, 18, '#8ad0ff', 0.55);
+      // dark storm ring
+      g.strokeStyle = '#3a4a6a'; g.lineWidth = 4;
+      g.beginPath(); g.arc(22, 22, 16, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = '#6a8ac0'; g.lineWidth = 1.8;
+      g.beginPath(); g.arc(22, 22, 16, 0, Math.PI * 2); g.stroke();
+      // great bolt
+      poly(g, [[26, 3], [13, 24], [20, 24], [16, 41], [31, 18], [23, 18]]);
+      g.fillStyle = '#ffd75e'; g.fill(); outl(g, 2.4);
+      poly(g, [[24.5, 7], [16, 22.5], [21, 22.5], [19, 33]]);
+      g.fillStyle = '#fff2c0'; g.fill();
+      // rune sparks
+      for (const [sx2, sy2] of [[8, 12], [36, 12], [8, 32], [36, 32]]) {
+        g.fillStyle = '#bfe0ff';
+        poly(g, [[sx2, sy2 - 3], [sx2 + 2, sy2], [sx2, sy2 + 3], [sx2 - 2, sy2]]); g.fill();
+      }
+    },
     heart: function (g) {
       g.fillStyle = '#d83a4a';
       g.beginPath();

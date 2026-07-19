@@ -5,7 +5,10 @@
 
 function SFXp(n){try{if(typeof SFX2!=='undefined')SFX2.play(n);}catch(err){}}
 
-const UIS={mode:'none',buildType:null,selTower:null,hoverC:-1,hoverR:-1,hoverX:-1,hoverY:-1,tab:'towers'};
+const IS_TOUCH=(function(){
+  try{return matchMedia('(pointer: coarse)').matches||'ontouchstart' in window;}catch(err){return false;}
+})();
+const UIS={mode:'none',buildType:null,selTower:null,hoverC:-1,hoverR:-1,hoverX:-1,hoverY:-1,tab:'towers',tapArmed:false};
 let started=false;
 let canvas,ctx;
 const $=id=>document.getElementById(id);
@@ -32,7 +35,9 @@ function iconHtmlInto(el,kind,id,size,fallback){
 window.addEventListener('DOMContentLoaded',()=>{
   canvas=$('game');ctx=canvas.getContext('2d');
   try{if(typeof SpriteLib!=='undefined')SpriteLib.build();}catch(err){console.warn('SpriteLib.build failed',err);}
+  if(IS_TOUCH)document.body.classList.add('touch');
   buildTowerCards();
+  buildSpellBar();
   bindHud();
   bindCanvas();
   bindKeys();
@@ -49,7 +54,9 @@ function loadPrefs(){
   try{
     if(localStorage.getItem('cs2_sfx')==='0'&&typeof SFX2!=='undefined')SFX2.setEnabled(false);
     if(localStorage.getItem('cs2_music')==='0'&&typeof Music!=='undefined')Music.setEnabled(false);
-    if(localStorage.getItem('cs2_dock')==='0')setDock(false,true);
+    const dockPref=localStorage.getItem('cs2_dock');
+    if(dockPref==='0')setDock(false,true);
+    else if(dockPref===null&&IS_TOUCH&&window.innerHeight<560)setDock(false,true); // phones: start canvas-first
   }catch(err){}
   refreshAudioBtns();
 }
@@ -126,6 +133,7 @@ function showMapSelect(){
       '<div class="btn-row">'+
       (hasSave(m.id)?'<button class="small-btn" data-cont="'+m.id+'">▶ Continue</button>':'')+
       '<button class="small-btn gold" data-new="'+m.id+'">✦ New</button>'+
+      (vaultPeak(m.id)?'<button class="small-btn peak" data-peak="'+m.id+'" title="Restart at wave 1 with your best-ever heroes, relics, troop levels and a rebuild budget">⭐ Peak (W'+vaultPeak(m.id).wave+')</button>':'')+
       '</div></div>';
   }
   html+='</div><p class="hint-line">Towers auto-fight • your army auto-resummons • progress autosaves every wave.<br>Built for leaving open while you work.</p></div>';
@@ -137,12 +145,15 @@ function showMapSelect(){
     nb.onclick=()=>{try{localStorage.removeItem('cs2_save_'+m.id);}catch(err){};beginRun(m.id,false);};
     const cb=ov.querySelector('[data-cont="'+m.id+'"]');
     if(cb)cb.onclick=()=>beginRun(m.id,true);
+    const pb=ov.querySelector('[data-peak="'+m.id+'"]');
+    if(pb)pb.onclick=()=>{try{localStorage.removeItem('cs2_save_'+m.id);}catch(err){};beginRun(m.id,false,true);};
   }
 }
-function beginRun(mapId,cont){
+function beginRun(mapId,cont,peak){
   $('overlay').style.display='none';
   delete bgCache[mapId];
-  if(!cont||!loadGame(mapId))newGame(mapId);
+  if(peak)startPeakRun(mapId);
+  else if(!cont||!loadGame(mapId))newGame(mapId);
   started=true;
   UIS.mode='none';UIS.selTower=null;
   buildArmyCards();buildHeroCards();buildRelicCards();refreshCards();
@@ -240,6 +251,7 @@ function refreshHud(){
   $('btnAuto').classList.toggle('active',G.autoWave);
   $('btnAuto').textContent='AUTO'+(G.autoWave?' ✓':'');
   $('btnPause').textContent=G.paused?'▶':'⏸';
+  refreshSpellBar();
 }
 
 /* ================= tower cards ================= */
@@ -270,7 +282,7 @@ function buildTowerCards(){
   },0);
 }
 function cancelMode(){
-  UIS.mode='none';UIS.buildType=null;
+  UIS.mode='none';UIS.buildType=null;UIS.tapArmed=false;
   if(G)G.targetMode=null;
   document.querySelectorAll('#towerCards .card').forEach(x=>x.classList.remove('selected'));
   setCursorHint('');
@@ -301,11 +313,73 @@ function showTowerDetail(t){
     '<button class="small-btn danger" id="btnSell">Sell +'+fmt(Math.round(towerInvested(def,t.lvl)*0.7))+'g</button>'+
     '</div>';
   box.style.display='block';
-  if(!maxed)$('btnUp').onclick=()=>{if(upgradeTower(t))showTowerDetail(t);};
+  if(!maxed)$('btnUp').onclick=()=>{if(upgradeTower(t)){showTowerDetail(t);positionTowerDetail(t);}};
   $('btnSell').onclick=()=>{sellTower(t);hideTowerDetail();UIS.selTower=null;};
   $('btnTdClose').onclick=()=>{hideTowerDetail();UIS.selTower=null;};
 }
 function hideTowerDetail(){$('towerDetail').style.display='none';}
+function positionTowerDetail(t){
+  const box=$('towerDetail'),stage=$('stage');
+  const r=canvas.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+  const scale=Math.min(r.width/CFG.W,r.height/CFG.H);
+  const ox=(r.width-CFG.W*scale)/2+(r.left-sr.left);
+  const oy=(r.height-CFG.H*scale)/2+(r.top-sr.top);
+  const bw=box.offsetWidth||250,bh=box.offsetHeight||120;
+  let left=ox+t.x*scale-bw/2;
+  let top=oy+(t.y-70)*scale-bh; // prefer above the tower
+  if(top<6)top=oy+(t.y+30)*scale; // flip below
+  left=clamp(left,6,sr.width-bw-6);
+  top=clamp(top,6,sr.height-bh-6);
+  box.style.left=left+'px';
+  box.style.top=top+'px';
+  box.style.bottom='auto';
+}
+
+/* ================= spell bar ================= */
+function buildSpellBar(){
+  const bar=$('spellbar');
+  bar.innerHTML='';
+  for(const def of SPELLS){
+    const b=document.createElement('button');
+    b.className='spell-btn'+(def.id==='ragnarok'?' ult':'');
+    b.id='sp-'+def.id;
+    b.title=def.name+' — '+def.desc;
+    b.innerHTML='<div class="spell-ico" id="spi-'+def.id+'"></div>'+
+      '<div class="spell-cd" id="spc-'+def.id+'"></div>'+
+      '<div class="spell-cdtxt" id="spt-'+def.id+'"></div>';
+    b.onclick=()=>{
+      if(!G||G.over)return;
+      if(G.targetMode==='spell:'+def.id){G.targetMode=null;setCursorHint('');return;}
+      if(castSpell(def.id)){
+        if(def.target)setCursorHint(def.id==='blessing'
+          ?(IS_TOUCH?'Tap where to sanctify the ground':'Click where to sanctify the ground')
+          :(IS_TOUCH?'Tap where the fire should fall':'Click where the fire should fall'));
+        refreshCards();
+      }else if(G.spells[def.id]>0){
+        setCursorHint(def.name+' recharges in '+Math.ceil(G.spells[def.id])+'s');
+        setTimeout(()=>{if($('cursorHint').textContent.indexOf('recharges')>=0)setCursorHint('');},1500);
+      }
+      SFXp('ui_click');
+    };
+    bar.appendChild(b);
+  }
+  setTimeout(()=>{
+    for(const def of SPELLS)iconHtmlInto($('spi-'+def.id),'misc',def.icon,IS_TOUCH?40:34,'✦');
+  },0);
+}
+function refreshSpellBar(){
+  if(!G)return;
+  for(const def of SPELLS){
+    const cd=G.spells[def.id],ready=cd<=0;
+    const btn=$('sp-'+def.id);
+    if(!btn)continue;
+    btn.classList.toggle('ready',ready);
+    btn.classList.toggle('targeting',G.targetMode==='spell:'+def.id);
+    const pct=ready?0:clamp(cd/def.cd,0,1)*100;
+    $('spc-'+def.id).style.height=pct+'%';
+    $('spt-'+def.id).textContent=ready?'':(cd>=60?Math.ceil(cd/60)+'m':Math.ceil(cd)+'s');
+  }
+}
 
 /* ================= army cards ================= */
 function buildArmyCards(){
@@ -345,7 +419,7 @@ function buildHeroCards(){
   box.innerHTML='';
   for(const def of HEROES){
     const d=document.createElement('div');
-    d.className='card hero-card';
+    d.className='card hero-card'+(def.legendary?' legendary':'');
     d.id='hc-'+def.id;
     d.innerHTML=
       '<div class="card-icon big" id="hi-'+def.id+'"></div>'+
@@ -370,7 +444,8 @@ function refreshHeroCards(){
     const uw=heroEffUnlock(def);
     if(!unlocked){
       lock.style.display='flex';
-      lock.textContent='🔒 Wave '+uw;
+      if(def.legendary)lock.innerHTML='<div class="mystery">🔮 ??? <span>A legendary champion.<br>Shadow Wardens hold them captive — slay one to set them free, forever.</span></div>';
+      else lock.textContent='🔒 Wave '+uw;
       continue;
     }
     lock.style.display='none';
@@ -390,7 +465,7 @@ function refreshHeroCards(){
     if(!h.recruited){
       if(bb.dataset.sig!==sig){
         bb.dataset.sig=sig;
-        bb.innerHTML='<button class="small-btn gold" data-rec="'+def.id+'">Recruit '+fmt(def.cost)+'g</button>';
+        bb.innerHTML='<button class="small-btn gold" data-rec="'+def.id+'">'+(def.legendary?'⭐ Summon (free)':'Recruit '+fmt(def.cost)+'g')+'</button>';
         bb.querySelector('button').onclick=()=>{const hh=G.heroes.find(x=>x.id===def.id);if(recruitHero(hh))refreshCards();};
       }
       bb.querySelector('button').disabled=G.gold<def.cost;
@@ -432,31 +507,14 @@ function buildRelicCards(){
     box.appendChild(d);
     $('rb-'+def.id).onclick=()=>{if(buyRelic(def.id))refreshCards();};
   }
-  for(const def of CONSUMABLES){
-    const d=document.createElement('div');
-    d.className='card relic-card consum';
-    d.id='cc-'+def.id;
-    d.title=def.desc;
-    d.innerHTML=
-      '<div class="card-icon" id="ci-'+def.id+'"></div>'+
-      '<div class="card-name">'+def.name+' <span class="lvl-badge" id="cn-'+def.id+'">×0</span></div>'+
-      '<div class="troop-stats rdesc">'+def.desc+'</div>'+
-      '<div class="btn-row tight">'+
-      '<button class="small-btn gold" id="cb-'+def.id+'">Buy '+def.cost+'g</button>'+
-      '<button class="small-btn" id="cu-'+def.id+'">Use</button>'+
-      '</div>';
-    box.appendChild(d);
-    $('cb-'+def.id).onclick=()=>{if(buyConsumable(def.id))refreshCards();};
-    $('cu-'+def.id).onclick=()=>{
-      if(useConsumable(def.id)){
-        if(def.id==='meteor')setCursorHint('Click the battlefield to call the meteor — Esc cancels');
-        refreshCards();
-      }
-    };
-  }
+  const note=document.createElement('div');
+  note.className='card relic-card spell-note';
+  note.innerHTML='<div class="card-icon">⚡</div>'+
+    '<div class="card-name">Battle Spells</div>'+
+    '<div class="troop-stats rdesc">Firestorm, Sanctified Ground and RAGNAROK now live on the spell buttons over the battlefield — free to cast, recharging on their own.</div>';
+  box.appendChild(note);
   setTimeout(()=>{
     for(const def of RELICS)iconHtmlInto($('ri-'+def.id),'relic',def.id,36,'✦');
-    for(const def of CONSUMABLES)iconHtmlInto($('ci-'+def.id),'relic',def.id,36,'✦');
   },0);
 }
 function refreshRelicCards(){
@@ -473,11 +531,6 @@ function refreshRelicCards(){
       b.textContent='Buy '+fmt(c)+'g';
       b.disabled=G.gold<c;
     }
-  }
-  for(const def of CONSUMABLES){
-    $('cn-'+def.id).textContent='×'+(G.consum[def.id]||0);
-    $('cb-'+def.id).disabled=G.gold<def.cost;
-    $('cu-'+def.id).disabled=!(G.consum[def.id]>0);
   }
 }
 
@@ -532,10 +585,21 @@ function bindCanvas(){
     const p=canvasPos(ev);
     if(p.x<0||p.y<0||p.x>CFG.W||p.y>CFG.H)return;
     const c=Math.floor(p.x/CFG.CELL),r=Math.floor(p.y/CFG.CELL);
-    if(G.targetMode==='meteor'){meteorAt(p.x,p.y);setCursorHint('');refreshCards();return;}
+    if(G.targetMode&&G.targetMode.indexOf('spell:')===0){
+      spellAt(G.targetMode.slice(6),p.x,p.y);
+      setCursorHint('');refreshCards();return;
+    }
     if(UIS.mode==='build'){
+      /* touch: first tap previews the tile, second tap on the same tile confirms */
+      if(IS_TOUCH&&!(UIS.tapArmed&&UIS.hoverC===c&&UIS.hoverR===r)){
+        UIS.hoverC=c;UIS.hoverR=r;UIS.hoverX=p.x;UIS.hoverY=p.y;UIS.tapArmed=true;
+        setCursorHint(canPlace(c,r)?'Tap again to build here':'Blocked tile — tap an open one');
+        return;
+      }
+      UIS.tapArmed=false;
       if(placeTower(UIS.buildType,c,r)){
         if(!ev.shiftKey||G.gold<TOWER_BY[UIS.buildType].cost)cancelMode();
+        else if(IS_TOUCH)setCursorHint('Tap a tile to build another '+TOWER_BY[UIS.buildType].name);
       }
       return;
     }
@@ -555,7 +619,7 @@ function bindCanvas(){
       }
     }
     const t=G.towers.find(t=>t.c===c&&t.r===r);
-    if(t){UIS.selTower=t;showTowerDetail(t);SFXp('ui_click');}
+    if(t){UIS.selTower=t;showTowerDetail(t);positionTowerDetail(t);SFXp('ui_click');}
     else{UIS.selTower=null;hideTowerDetail();}
   });
   canvas.addEventListener('contextmenu',ev=>{

@@ -1,67 +1,60 @@
 # 🏰 Castle Siege — Endless Defense
 
-A medieval tower-defense game built for **playing while you multitask**. Towers auto-fight,
-your army auto-resummons, heroes auto-cast their skills, waves auto-start — you drop in
-between tasks to spend gold, upgrade, and see how deep you can push.
+A medieval tower-defense game built for **playing while you multitask** — on desktop or phone.
+Towers auto-fight, your army auto-resummons, heroes auto-cast their skills, waves auto-start.
+You drop in between tasks to spend gold, cast a spell, and push one wave deeper.
 
 ![Castle Siege screenshot](screenshot.png)
 
-## How to run it
+## Play it
 
-No install, no server, no dependencies, fully offline:
+**On your computer** — download this `castle-siege` folder and double-click **`index.html`**.
+No install, no server, fully offline.
 
-1. Download this `castle-siege` folder (or clone the repo).
-2. Double-click **`index.html`** — it opens in your browser (Chrome, Edge, or Firefox).
-3. Click anywhere once and hit 🎵 for the soundtrack (browsers require a click before audio).
+**On your phone** — host the repo with GitHub Pages (Settings → Pages → deploy from branch →
+`/` root), then open `https://<user>.github.io/<repo>/castle-siege/` in your phone's browser.
+Play in landscape; use "Add to Home Screen" for fullscreen. Touch controls are built in
+(tap a tile to preview a tower, tap again to build).
 
-Progress **autosaves every wave**, per battlefield, in your browser's storage.
+Progress autosaves every wave, per battlefield. Saves live in each browser's storage.
 
-## Three battlefields
+## The game
 
-| Battlefield | Difficulty | Roads | Twist |
-|---|---|---|---|
-| Greenvale Meadow | Easy | 1 | The classic winding road — learn the trade |
-| Amberfield Crossroads | Medium | 2 | Two war-roads converge on your gate |
-| Ashen Pass | Hard | 3 | Three scorched paths meet in a killzone; richer gold |
+- **3 battlefields** — Easy (1 road), Medium (2 converging roads), Hard (3-path killzone,
+  richer gold). Endless waves, a boss every 10th, Elite/Champion rarities.
+- **9 towers × 5 levels**, **12 troop types** with discounted auto-resummon loadouts,
+  **7 permanent relics**.
+- **6 heroes** unlock as you push deeper — trainable, with signature skills (Lv 3) and
+  passives (Lv 8).
+- **3 spells**, free and self-recharging, on the buttons over the battlefield:
+  **Firestorm** (click-target burn), **Sanctified Ground** (click-target heal zone), and
+  **RAGNAROK** — a 5-minute-cooldown cataclysm that devastates every enemy, stuns the horde,
+  resummons your whole army free, and empowers it. The last-minute clutch.
 
-Each keeps its own save slot and best-wave record. Endless waves, a **boss every 10th wave**
-(4 rotating bosses that return stronger as tier II, III…), and Elite/Champion enemy rarities.
+## ✨ Events, Legendaries & the Vault
 
-## Your arsenal
-
-- **9 towers × 5 levels** — Archer, Cannon, Frost, Flame, Ballista, Poison, chain-lightning
-  Storm Spire, **Gold Mint** (passive income) and **Holy Beacon** (damage aura). Armored
-  enemies resist arrows — melt them with magic.
-- **12 troop types** — set a keep-count per type and fallen troops **auto-resummon at a
-  discount**; on multi-road maps the army reinforces the most threatened road automatically.
-- **6 heroes** — Sir Aldric leads from wave 1; recruit Lyra, Magnus, Celeste, Bjorn, and Nyx
-  as you push deeper (they unlock earlier on harder maps). At **Lv 3** each learns an
-  auto-cast signature skill — Valor Slam, Arrow Storm, Meteor, Sanctuary, War Cry, Shadow
-  Flurry — and at **Lv 8** a passive.
-- **7 relics** — permanent tiered upgrades: troop damage, tower damage, army capacity, gold
-  income, castle walls, hero power, faster resummons.
-- **3 consumables** — click-target **Meteor Strike** (the boss-killer), **Horn of Renewal**
-  (full army heal), **Frost Nova** (freeze everything). Stock up before boss waves.
-
-## Multitask setup 😎
-
-AUTO waves on → set army keep-counts → build Gold Mints → 3× speed → collapse the bottom
-panel (▼). Check in when you hear the boss horn.
+- The **Gilded Boar** occasionally dashes across the field — kill it for bonus gold, free
+  tower/troop upgrades, or instant spell resets.
+- **Shadow Wardens** rarely appear dragging a captive legend. Slay one and a **Legendary
+  Hero** joins you: *Aurelia the Dawnblade*, *Karrgoth the Wyrmborn*, or *Morrigan, Queen of
+  Ravens* — far stronger than mortal heroes, with near-instant respawns.
+- Legendaries are recorded in your **Vault** — permanent browser storage that survives every
+  defeat and restart. Once freed, a legend is yours in every future run, free to summon.
+- The Vault also tracks your **peak build** per battlefield: the **⭐ Peak button** on the
+  map screen restarts at wave 1 with your best-ever hero levels, relics, troop levels, and a
+  rebuild budget. Grind it once, keep it forever.
 
 ## Controls
 
-| Input | Action |
+| Desktop | Phone |
 |---|---|
-| Click tower card → click tile | Build (Shift-click = several) |
-| `1`–`9` | Tower hotkeys |
-| Click a built tower | Upgrade / sell |
-| Click a hero (or `H`) → click map | Reposition hero |
-| `R` + click near a road | Set that road's rally point |
-| `Space` / `F` / `Esc` | Pause / speed / cancel |
+| Click tower card → click tile (Shift = several) | Tap card → tap tile → tap again to confirm |
+| `1`–`9` build hotkeys, `H` heroes, `R` rally | Tap heroes/buttons directly |
+| Click spell button → click target | Tap spell button → tap target |
+| `Space` pause • `F` speed • `Esc` cancel | HUD buttons |
 
 ## Tech
 
-Plain HTML5 canvas + JavaScript — no frameworks, no assets, no network. All art is
-pre-rendered procedurally in code (`sprites.js`); the medieval score is generated live with
-WebAudio (`music.js` — Karplus-Strong plucked lute, flute, drums, with calm/battle/boss
-intensity layers).
+Plain HTML5 canvas + JavaScript — no frameworks, no assets, no network calls. All art is
+procedural (`sprites.js`), the medieval score is synthesized live with WebAudio (`music.js`),
+and it installs as a PWA-style home-screen app via `manifest.json`.

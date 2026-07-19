@@ -239,23 +239,90 @@ const HEROES=[
   skill:{id:'shadowflurry', name:'Shadow Flurry', unlockLvl:3, cd:11, snd:'skill_shadow',
     desc:'Blinks between the 6 strongest foes, striking each hard.'},
   passive:{lvl:8, name:'Shadowstep', desc:'25% chance to dodge any blow.'}},
+ /* ---- LEGENDARIES: rescued from Shadow Wardens (rare events), kept forever in the Vault ---- */
+ {id:'aurelia', name:'Aurelia the Dawnblade', title:'Legend of the First Light', legendary:true, unlockWave:-1, cost:0,
+  hp:1100, dmg:95, rate:0.6, speed:105, melee:true, cleave:62, col:'#ffe27a', cape:'#f4f0e4', snd:'hero_celeste_atk',
+  skill:{id:'dawnburst', name:'Dawnburst', unlockLvl:1, cd:10, snd:'skill_sanctuary',
+    desc:'Radiant nova: heavy holy damage and heals nearby allies.'},
+  passive:{lvl:5, name:'Undying Light', desc:'Returns from death almost instantly.'}},
+ {id:'karrgoth', name:'Karrgoth the Wyrmborn', title:'Last of the Dragon Guard', legendary:true, unlockWave:-1, cost:0,
+  hp:1600, dmg:120, rate:0.85, speed:88, melee:true, cleave:70, col:'#ff9a5e', cape:'#8a2a1a', snd:'hero_bjorn_atk',
+  skill:{id:'dragonfire', name:'Dragonfire', unlockLvl:1, cd:12, snd:'skill_meteor',
+    desc:'Breathes a torrent of flame over the thickest pack.'},
+  passive:{lvl:5, name:'Wyrm Blood', desc:'His blows set enemies ablaze.'}},
+ {id:'morrigan', name:'Morrigan, Queen of Ravens', title:'Sovereign of the Twilight Court', legendary:true, unlockWave:-1, cost:0,
+  hp:850, dmg:110, rate:1.1, speed:95, melee:false, range:200, dtype:'magic', col:'#c88bff', cape:'#221c30', snd:'hero_nyx_atk',
+  skill:{id:'ravenstorm', name:'Ravenstorm', unlockLvl:1, cd:11, snd:'skill_shadow',
+    desc:'A murder of shadow-ravens tears into up to 10 foes.'},
+  passive:{lvl:5, name:'Chill of the Court', desc:'Her magic slows everything it touches.'}},
 ];
 const HERO_BY={};HEROES.forEach(h=>HERO_BY[h.id]=h);
+const LEGENDARIES=HEROES.filter(h=>h.legendary);
 
 function heroEffUnlock(def){
+  if(def.legendary)return -1; // event-only
   if(def.unlockWave===0)return 0;
   return Math.max(12,Math.round(def.unlockWave*MAP.def.mods.heroWaveMul));
 }
 function heroStat(def,lvl){
   const m=Math.pow(1.22,lvl-1)*(1+relicVal('grimoire'));
+  let respawn=Math.max(8,15-0.2*(lvl-1));
+  if(def.legendary)respawn=def.id==='aurelia'&&lvl>=def.passive.lvl?2:5;
   return {hp:def.hp*m,dmg:def.dmg*m,rate:def.rate,speed:def.speed,
     range:(def.range||0)*(lvl>=(def.passive?def.passive.lvl:99)&&def.id==='lyra'?1.2:1),
-    respawn:Math.max(8,15-0.2*(lvl-1))};
+    respawn};
 }
 function heroUpCost(def,lvl){
-  const idx=HEROES.indexOf(def);
-  return Math.round((110+idx*55)*Math.pow(1.33,lvl-1));
+  const idx=Math.min(HEROES.indexOf(def),5);
+  const base=def.legendary?520:(110+idx*55);
+  return Math.round(base*Math.pow(1.33,lvl-1));
 }
+
+/* ============================================================
+   SPELLS — always available, cooldown-based battlefield powers
+   ============================================================ */
+const SPELLS=[
+ {id:'firestorm', name:'Firestorm', icon:'fire', cd:45, radius:115, target:true, snd:'consumable_meteor',
+  desc:'Click a spot: rain fire on it — heavy damage plus burn.'},
+ {id:'blessing', name:'Sanctified Ground', icon:'heal', cd:40, radius:125, target:true, dur:5, snd:'consumable_heal',
+  desc:'Click a spot: hallow the ground — heals your army there for 5s.'},
+ {id:'ragnarok', name:'RAGNAROK', icon:'ragnarok', cd:300, target:false, snd:'boss_die',
+  desc:'The sky falls. Devastates every enemy, stuns the horde, resummons your entire army free, and empowers it. The last-minute clutch.'},
+];
+const SPELL_BY={};SPELLS.forEach(s=>SPELL_BY[s.id]=s);
+
+/* ============================================================
+   RANDOM EVENTS — wandering treasures & legendary rescues
+   ============================================================ */
+const EVENT_DEFS={
+ boar:{id:'boar', name:'Gilded Boar', hp:34, speed:118, armor:0, gold:15, leak:0, kind:'beast', col:'#ffd75e', size:12, event:'boar'},
+ warden:{id:'warden', name:'Shadow Warden', hp:640, speed:52, armor:0.35, gold:80, leak:0, kind:'big', col:'#5c4a8a', size:20, event:'warden'},
+};
+const EVENT_CFG={
+ boarMinWave:4, boarChance:0.11,
+ wardenMinWave:9,
+ wardenChance:(w,pity)=>Math.min(0.30,0.02+0.003*w+0.012*pity),
+};
+
+/* ============================================================
+   THE VAULT — permanent progress that survives every defeat
+   ============================================================ */
+let VAULT=null;
+function vaultData(){
+  if(VAULT)return VAULT;
+  try{VAULT=JSON.parse(localStorage.getItem('cs2_vault'))||null;}catch(err){VAULT=null;}
+  if(!VAULT||VAULT.v!==1)VAULT={v:1,legends:[],peaks:{},wardenPity:0};
+  if(!VAULT.peaks)VAULT.peaks={};
+  if(!Array.isArray(VAULT.legends))VAULT.legends=[];
+  return VAULT;
+}
+function vaultSave(){try{localStorage.setItem('cs2_vault',JSON.stringify(vaultData()));}catch(err){}}
+function vaultHas(id){return vaultData().legends.includes(id);}
+function vaultAddLegend(id){
+  const v=vaultData();
+  if(!v.legends.includes(id)){v.legends.push(id);vaultSave();}
+}
+function vaultPeak(mapId){return vaultData().peaks[mapId]||null;}
 
 /* ============================================================
    ENEMIES + BOSSES
