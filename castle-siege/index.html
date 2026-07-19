@@ -304,6 +304,54 @@
     body.touch .spell-btn.ult{width:60px;height:60px;}
     #spellbar{bottom:44px;right:8px;gap:7px;}
   }
+  .bulk-btn{flex:0 0 auto;align-self:center;line-height:1.15;padding:6px 8px;font-size:11px;}
+  /* ============ REEF THEME CHROME ============ */
+  body.reef{background:#081a22;}
+  body.reef #hudbar{background:linear-gradient(180deg,#0f3242,#0a2430);border-bottom-color:#1e5a66;}
+  body.reef .hud-btn{background:linear-gradient(180deg,#164a58,#0f3a46);border-color:#2a7482;}
+  body.reef .hud-btn.active{background:linear-gradient(180deg,#2fc2b4,#1e8a80);border-color:#7ce8dc;box-shadow:0 0 8px rgba(60,210,195,0.5);}
+  body.reef #stage{background:radial-gradient(ellipse at center,#0d2836 0%,#051318 100%);}
+  body.reef #cursorHint{border-color:#2fc2b4;color:#c8f0ea;box-shadow:0 0 12px rgba(47,194,180,0.4);}
+  body.reef #towerDetail{background:linear-gradient(180deg,#0f3242,#0c2836);}
+  body.reef .x-btn{color:#7aa8a4;}
+  body.reef #dock{background:linear-gradient(180deg,#0d2c3a,#081e28);border-top-color:#1e5a66;}
+  body.reef .tab{color:#8fb8b4;}
+  body.reef .tab:hover{color:#c8f0ea;}
+  body.reef #btnDock{border-color:#1e5a66;color:#8fb8b4;}
+  body.reef #btnDock:hover{color:#fff;border-color:#2fc2b4;}
+  body.reef .pane::-webkit-scrollbar-thumb{background:#164a58;}
+  body.reef .card{background:linear-gradient(180deg,#12404e,#0e303c);border-color:#1e5a66;}
+  body.reef .card:hover{border-color:#2fc2b4;box-shadow:0 0 10px rgba(47,194,180,0.35);}
+  body.reef .lvl-badge{background:#081c26;}
+  body.reef .troop-stats.rdesc{color:#7aa8a4;}
+  body.reef .step-btn{background:#164a58;border-color:#2a7482;}
+  body.reef .step-btn:hover{background:#2a7482;}
+  body.reef .hero-title{color:#7aa8a4;}
+  body.reef .skill-line{color:#96e4d4;}
+  body.reef .skill-line .cd{color:#7aa8a4;}
+  body.reef .locked-skill{color:#3f6e6a;}
+  body.reef .pip{background:#103240;border-color:#2a7482;}
+  body.reef .mystery{color:#96e4d4;}
+  body.reef .mystery span{color:#7aa8a4;}
+  body.reef .small-btn.peak{background:linear-gradient(180deg,#1e9a8e,#177a72);border-color:#5adcd0;}
+  body.reef .small-btn.peak:hover{background:linear-gradient(180deg,#2cb4a6,#1a877c);}
+  body.reef .spell-btn{background:radial-gradient(circle at 35% 30%,#164a58,#0e303c);border-color:#2a7482;}
+  body.reef .side-card{background:linear-gradient(180deg,#12404e,#0e303c);border-color:#1e5a66;}
+  body.reef .side-card.mgmt{background:linear-gradient(180deg,#164a58,#0f3a46);}
+  body.reef .tgt-chip{border-color:#16444e;}
+  body.reef #mobilePanel{background:linear-gradient(180deg,#0f3242,#0b2634);border-color:#2fc2b4;}
+  body.reef .mp-tab{color:#8fb8b4;background:#0a2430;border-color:#1e5a66;}
+  body.reef #mpPaused{color:#7aa8a4;}
+  body.reef .wheel-box{background:linear-gradient(180deg,#0f3242,#0b2634);}
+  body.reef .wheel-box .wsub{color:#8fb8b4;}
+  body.reef .panel-box{background:linear-gradient(180deg,#0f3242,#0b2634);border-color:#2fc2b4;box-shadow:0 0 70px rgba(47,194,180,0.4);}
+  body.reef .start-box h2{color:#8fb8b4;}
+  body.reef .lore,body.reef .stats-line{color:#bcded8;}
+  body.reef .map-card{border-color:#1e5a66;}
+  body.reef .map-desc{color:#8fb8b4;}
+  body.reef .hint-line{color:#7aa8a4;}
+  body.reef .help-box p,body.reef .help-box li{color:#bcded8;}
+  body.reef kbd{background:#081c26;border-color:#2a7482;}
 </style>
 </head>
 <body>
@@ -321,6 +369,7 @@
     <button class="hud-btn" id="spd3">3×</button>
     <button class="hud-btn" id="spdCycle" title="Game speed — tap to cycle">1×</button>
     <button class="hud-btn" id="btnPause" title="Pause (Space)">⏸</button>
+    <button class="hud-btn" id="btnUndo" title="Undo last build / upgrade (full refund)">↩</button>
     <button class="hud-btn" id="btnSfx" title="Sound effects">🔊</button>
     <button class="hud-btn" id="btnMusic" title="Music">🎵</button>
     <button class="hud-btn" id="btnHelp" title="How to play">?</button>
@@ -348,9 +397,9 @@
       <button id="btnDock" title="Collapse panel">▼</button>
     </div>
     <div id="dockbody">
-      <div class="pane" id="pane-towers" style="display:flex"><div class="pane" style="display:contents" id="towerCards"></div></div>
-      <div class="pane" id="pane-army"><div style="display:contents" id="armyCards"></div></div>
-      <div class="pane" id="pane-heroes"><div style="display:contents" id="heroCards"></div></div>
+      <div class="pane" id="pane-towers" style="display:flex"><button class="small-btn gold bulk-btn" id="bulk-towers" title="Repeatedly buys the cheapest tower or wall upgrade on the field until gold runs out">⏫<br>All</button><div class="pane" style="display:contents" id="towerCards"></div></div>
+      <div class="pane" id="pane-army"><button class="small-btn gold bulk-btn" id="bulk-troops" title="Repeatedly buys the cheapest troop upgrade until gold runs out">⏫<br>All</button><div style="display:contents" id="armyCards"></div></div>
+      <div class="pane" id="pane-heroes"><button class="small-btn gold bulk-btn" id="bulk-heroes" title="Repeatedly trains the cheapest hero level until gold runs out">⏫<br>All</button><div style="display:contents" id="heroCards"></div></div>
       <div class="pane" id="pane-relics"><div style="display:contents" id="relicCards"></div></div>
     </div>
   </div>
@@ -382,10 +431,12 @@
   <div class="panel-box help-box">
     <h2>📜 How to Play</h2>
     <h3>Goal</h3>
-    <p>Endless waves march toward your castle gate along one, two, or three war-roads (pick your battlefield). Leaked enemies cost lives — bosses cost 10. Survive as long as you can.</p>
+    <p>Endless waves march on your gate along one, two, or three attack roads (pick your battlefield). Leaked enemies cost lives — bosses cost 10. Survive as long as you can.</p>
     <h3>🏰 Towers</h3>
     <ul>
-      <li>9 types, 5 upgrade levels each. Armored foes shrug off arrows — melt them with magic (❄🔥⚡☠).</li>
+      <li>11 types, 5 upgrade levels each. Armored foes shrug off arrows — melt them with magic (❄🔥⚡☠).</li>
+      <li><b>Barricades</b> are built ON the road — enemies must batter them down before they can pass. The <b>Arbalest</b> is a slow, monstrous sniper that prioritizes flyers.</li>
+      <li>↩ undoes your last build or upgrade at full refund. ⏫ Max on a tower — or the ⏫ All button in each panel — buys upgrades in bulk.</li>
       <li><b>Gold Mint</b> = passive income; <b>Holy Beacon</b> buffs nearby towers. Click a built tower to upgrade or sell.</li>
     </ul>
     <h3>⚔️ Army</h3>
@@ -423,6 +474,7 @@
   </div>
 </div>
 <script src="data.js"></script>
+<script src="themes.js"></script>
 <script src="sprites.js"></script>
 <script src="music.js"></script>
 <script src="engine.js"></script>

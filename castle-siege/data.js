@@ -8,7 +8,7 @@ const CFG = {
   W: 1280, H: 720, CELL: 40, COLS: 32, ROWS: 18,
   START_GOLD: 240, START_LIVES: 20,
   ENGAGE_R: 30, ENEMY_ATK_R: 36, AGGRO_R: 115,
-  INTERMISSION: 9, MAX_TOWER_LVL: 5, MAX_TROOP_LVL: 9, MAX_HERO_LVL: 40,
+  INTERMISSION: 9, MAX_TOWER_LVL: 5, MAX_TROOP_LVL: 9, MAX_HERO_LVL: 200,
 };
 
 let LOW_FX=false; // set true on touch devices: fewer particles & flashes
@@ -154,6 +154,10 @@ const TOWERS=[
   desc:'Mints gold every 5s. Perfect while you multitask.', hue:'#e8c93a'},
  {id:'beacon', name:'Holy Beacon',   cost:140, aura:0.12, rate:0, range:135, dtype:'none', proj:'none', snd:'coin',
   desc:'+damage aura for towers in range. Stacks.', hue:'#f0e6b4'},
+ {id:'arbalest', name:'Great Arbalest', cost:260, dmg:150, rate:0.16, range:330, dtype:'phys', proj:'bolt', pierce:1, snd:'ballista', targets:'both',
+  desc:'Slow-loading siege crossbow. Colossal bolts at extreme range; aims at flyers first.', hue:'#7a94b8'},
+ {id:'wall', name:'Barricade', cost:200, wall:true, rate:0, range:0, dtype:'none', proj:'none', snd:'build',
+  desc:'Blocks the road — enemies must batter it down. Build ON the path.', hue:'#8d8798'},
 ];
 const TOWER_BY={};TOWERS.forEach(t=>TOWER_BY[t.id]=t);
 
@@ -196,6 +200,7 @@ const TROOPS=[
  {id:'cavalry',  name:'Cavalry',     cost:120, hp:160, dmg:19, rate:0.8, speed:118, melee:true,  unlock:16, snd:'melee_hit2', desc:'Fast riders that rush the front.'},
  {id:'paladin',  name:'Paladin',     cost:160, hp:350, dmg:17, rate:0.95,speed:54,  melee:true,  armor:0.35, selfHeal:0.015, unlock:18, snd:'melee_hit3', desc:'Armored, self-healing champion.'},
  {id:'giant',    name:'Giant',       cost:250, hp:950, dmg:48, rate:1.7, speed:44,  melee:true,  cleave:45, unlock:20, snd:'giant_smash', desc:'Colossal smasher. Cleaves groups.'},
+ {id:'skeleton', name:'Risen Skeleton', cost:0, hp:80, dmg:9, rate:0.9, speed:70, melee:true, unlock:999, summon:true, snd:'melee_hit1', desc:'Raised from fallen foes. Fights until it crumbles.'},
 ];
 const TROOP_BY={};TROOPS.forEach(t=>TROOP_BY[t.id]=t);
 const ALL_TROOPS_WAVE=Math.max(...TROOPS.map(t=>t.unlock)); // 20
@@ -241,6 +246,11 @@ const HEROES=[
   skill:{id:'shadowflurry', name:'Shadow Flurry', unlockLvl:3, cd:11, snd:'skill_shadow',
     desc:'Blinks between the 6 strongest foes, striking each hard.'},
   passive:{lvl:8, name:'Shadowstep', desc:'25% chance to dodge any blow.'}},
+ {id:'drake', name:'Cindervane', title:'the Sky Drake', unlockWave:70, cost:8000,
+  hp:700, dmg:85, rate:0.8, speed:110, melee:false, range:190, splash:40, dtype:'magic', col:'#ff7a4e', cape:'#8a2a1a', snd:'hero_magnus_atk', airBonus:true,
+  skill:{id:'skysweep', name:'Sky Sweep', unlockLvl:3, cd:12, snd:'skill_meteor',
+    desc:'Scours the heavens: massive damage to every flyer, embers rain below.'},
+  passive:{lvl:8, name:'Windlord', desc:'Double damage against flying enemies.'}},
  /* ---- LEGENDARIES: rescued from Shadow Wardens (rare events), kept forever in the Vault ---- */
  {id:'aurelia', name:'Aurelia the Dawnblade', title:'Legend of the First Light', legendary:true, unlockWave:-1, cost:0,
   hp:1100, dmg:95, rate:0.6, speed:105, melee:true, cleave:62, col:'#ffe27a', cape:'#f4f0e4', snd:'hero_celeste_atk',
@@ -257,6 +267,11 @@ const HEROES=[
   skill:{id:'ravenstorm', name:'Ravenstorm', unlockLvl:1, cd:11, snd:'skill_shadow',
     desc:'A murder of shadow-ravens tears into up to 10 foes.'},
   passive:{lvl:5, name:'Chill of the Court', desc:'Her magic slows everything it touches.'}},
+ {id:'lich', name:'Vex the Deathless', title:'First of the Grave', legendary:true, unlockWave:-1, cost:0,
+  hp:900, dmg:88, rate:1.0, speed:90, melee:false, range:185, dtype:'magic', col:'#9ae05e', cape:'#1c2418', snd:'hero_nyx_atk',
+  skill:{id:'massraise', name:'Mass Grave', unlockLvl:1, cd:14, snd:'skill_shadow',
+    desc:'Tears open the earth: raises 5 skeletal warriors at once.'},
+  passive:{lvl:5, name:'Harvest of Souls', desc:'Enemies slain near Vex may rise as your skeletons.'}},
 ];
 const HERO_BY={};HEROES.forEach(h=>HERO_BY[h.id]=h);
 const LEGENDARIES=HEROES.filter(h=>h.legendary);
@@ -266,8 +281,9 @@ function heroEffUnlock(def){
   if(def.unlockWave===0)return 0;
   return Math.max(12,Math.round(def.unlockWave*MAP.def.mods.heroWaveMul));
 }
-function heroStat(def,lvl){
-  const m=Math.pow(1.22,lvl-1)*(1+relicVal('grimoire'));
+const ASC_MULT=1.8, ASC_CHANCE=0.03;
+function heroStat(def,lvl,asc){
+  const m=Math.pow(1.22,lvl-1)*(1+relicVal('grimoire'))*(asc?ASC_MULT:1);
   let respawn=Math.max(8,15-0.2*(lvl-1));
   if(def.legendary)respawn=def.id==='aurelia'&&lvl>=def.passive.lvl?2:5;
   return {hp:def.hp*m,dmg:def.dmg*m,rate:def.rate,speed:def.speed,
@@ -389,8 +405,11 @@ const hpMul=w=>(1+0.15*w)*Math.pow(1.07,w)*(MAP?MAP.def.mods.hp:1);
 const goldMul=w=>(1+0.06*w+0.0008*w*w)*(MAP?MAP.def.mods.gold:1)*(1+relicVal('treasury'));
 const waveReward=w=>Math.round((60+14*w+(w%10===0?150+8*w:0))*(1+relicVal('treasury'))*(MAP?0.85+0.15*MAP.P.length:1));
 const speedMul=w=>Math.min(1.25,1+0.003*w)*(MAP?MAP.def.mods.spd:1);
-const popCap=w=>Math.min(26,8+Math.floor(w/3)+Math.round(relicVal('banners')));
+const popCap=w=>Math.min(55,8+Math.floor(w/3)+Math.floor(w/10)*5)+Math.round(relicVal('banners'));
 const maxLives=()=>CFG.START_LIVES+Math.round(relicVal('walls'));
+const WALL_BASE_HP=520;
+const wallHpAt=(w,lvl)=>Math.round(WALL_BASE_HP*Math.sqrt(hpMul(w))*Math.pow(1.8,lvl-1));
+const wallUpCost=lvl=>Math.round(160*Math.pow(1.7,lvl-1));
 const VET_KILLS=[20,60,160,400,1000];
 function towerRank(t){let s=0;for(const k of VET_KILLS)if((t.kills||0)>=k)s++;return s;}
 const eliteChance=w=>Math.min(0.28,(0.02+0.006*w)*(MAP?MAP.def.mods.elite:1));
