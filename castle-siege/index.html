@@ -150,6 +150,21 @@
       #dockbody{max-height:calc(44vh - env(safe-area-inset-bottom));}
     }
   }
+  /* ============ letterbox side strips (phones) ============ */
+  #sideL,#sideR{display:none;position:absolute;top:6px;z-index:7;flex-direction:column;gap:5px;
+    overflow-y:auto;scrollbar-width:none;width:60px;align-items:center;}
+  #sideL::-webkit-scrollbar,#sideR::-webkit-scrollbar{display:none;}
+  #sideL{left:calc(4px + env(safe-area-inset-left,0px));bottom:44px;}
+  #sideR{right:calc(4px + env(safe-area-inset-right,0px));bottom:240px;}
+  body.sidebars #sideL,body.sidebars #sideR{display:flex;}
+  .side-card{flex:0 0 auto;width:56px;background:linear-gradient(180deg,#322a52,#241e3e);
+    border:1px solid #4a3f68;border-radius:9px;padding:4px 2px 3px;display:flex;flex-direction:column;
+    align-items:center;gap:1px;cursor:pointer;}
+  .side-card.selected{border-color:#ffd75e;box-shadow:0 0 8px rgba(255,215,94,0.55);background:linear-gradient(180deg,#3d3358,#2b2444);}
+  .side-card.cant{opacity:0.45;}
+  .side-card .sc-cost{font-size:9.5px;color:#ffd75e;font-weight:bold;line-height:1;}
+  .side-card.hero{border-color:#5a7aae;}
+  .side-card.hero.dead{opacity:0.35;}
   /* ============ rotate-your-phone overlay ============ */
   #rotateOverlay{display:none;position:fixed;inset:0;background:rgba(12,9,20,0.96);z-index:200;
     align-items:center;justify-content:center;text-align:center;color:#d8ccff;font-size:18px;line-height:1.6;padding:24px;}
@@ -264,6 +279,8 @@
     <div id="cursorHint"></div>
     <div id="towerDetail"></div>
     <div id="spellbar"></div>
+    <div id="sideL"></div>
+    <div id="sideR"></div>
   </div>
   <div id="dock">
     <div id="dockbar">

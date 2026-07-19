@@ -37,8 +37,10 @@ window.addEventListener('DOMContentLoaded',()=>{
   try{if(typeof SpriteLib!=='undefined')SpriteLib.build();}catch(err){console.warn('SpriteLib.build failed',err);}
   if(IS_TOUCH)document.body.classList.add('touch');
   buildTowerCards();
+  buildSideBars();
   buildSpellBar();
   bindHud();
+  window.addEventListener('resize',updateSidebarsVisible);
   bindCanvas();
   bindKeys();
   loadPrefs();
@@ -269,25 +271,92 @@ function buildTowerCards(){
     d.innerHTML='<div class="card-icon" id="ti-'+def.id+'"></div>'+
       '<div class="card-name">'+def.name+'</div>'+
       '<div class="card-cost">'+def.cost+'g</div>';
-    d.onclick=()=>{
-      if(UIS.mode==='build'&&UIS.buildType===def.id){cancelMode();return;}
-      UIS.mode='build';UIS.buildType=def.id;UIS.selTower=null;G.targetMode=null;
-      document.querySelectorAll('#towerCards .card').forEach(x=>x.classList.remove('selected'));
-      d.classList.add('selected');
-      setCursorHint('Click an empty tile to build '+def.name+' — Shift-click builds several, Esc cancels');
-      hideTowerDetail();
-      SFXp('ui_click');
-    };
+    d.onclick=()=>selectBuildType(def);
     box.appendChild(d);
   }
   setTimeout(()=>{
     for(const def of TOWERS)iconHtmlInto($('ti-'+def.id),'tower',def.id,36,'🏰');
   },0);
 }
+function selectBuildType(def){
+  if(UIS.mode==='build'&&UIS.buildType===def.id){cancelMode();return;}
+  UIS.mode='build';UIS.buildType=def.id;UIS.selTower=null;UIS.tapArmed=false;
+  if(G)G.targetMode=null;
+  syncBuildSelection();
+  setCursorHint(IS_TOUCH?('Tap a tile to place '+def.name+', tap again to confirm'):
+    ('Click an empty tile to build '+def.name+' — Shift-click builds several, Esc cancels'));
+  hideTowerDetail();
+  SFXp('ui_click');
+}
+function syncBuildSelection(){
+  const on=UIS.mode==='build';
+  document.querySelectorAll('#towerCards .card').forEach(x=>x.classList.toggle('selected',on&&x.id==='tc-'+UIS.buildType));
+  document.querySelectorAll('#sideL .side-card').forEach(x=>x.classList.toggle('selected',on&&x.dataset.tid===UIS.buildType));
+}
+
+/* ================= letterbox side strips (phones) ================= */
+function buildSideBars(){
+  const L=$('sideL');
+  L.innerHTML='';
+  for(const def of TOWERS){
+    const d=document.createElement('div');
+    d.className='side-card';d.dataset.tid=def.id;d.title=def.name+' — '+def.cost+'g';
+    const ic=document.createElement('div');
+    ic.className='card-icon';ic.style.width='32px';ic.style.height='32px';
+    d.appendChild(ic);
+    const c=document.createElement('div');
+    c.className='sc-cost';c.textContent=def.cost;
+    d.appendChild(c);
+    d.onclick=()=>selectBuildType(def);
+    L.appendChild(d);
+    iconHtmlInto(ic,'tower',def.id,30,'🏰');
+  }
+}
+function refreshSideBars(){
+  if(!G)return;
+  document.querySelectorAll('#sideL .side-card').forEach(x=>{
+    const def=TOWER_BY[x.dataset.tid];
+    if(def)x.classList.toggle('cant',G.gold<def.cost);
+  });
+  const R=$('sideR');
+  const hs=G.heroes.filter(h=>h.recruited);
+  const sig=hs.map(h=>h.id).join(',');
+  if(R.dataset.sig!==sig){
+    R.dataset.sig=sig;
+    R.innerHTML='';
+    for(const h of hs){
+      const d=document.createElement('div');
+      d.className='side-card hero';d.dataset.hid=h.id;d.title=h.hdef.name+' — tap, then tap the map to move';
+      const ic=document.createElement('div');
+      ic.className='card-icon';ic.style.width='34px';ic.style.height='34px';
+      d.appendChild(ic);
+      d.onclick=()=>{
+        const hh=G.heroes.find(x2=>x2.id===h.id);
+        if(!hh||hh.dead)return;
+        G.selHero=hh;UIS.mode='hero';G.targetMode=null;
+        setCursorHint('Tap the map to post '+hh.hdef.name+' there');
+        SFXp('ui_click');
+      };
+      R.appendChild(d);
+      iconHtmlInto(ic,'hero',h.id,32,'🦸');
+    }
+  }
+  R.querySelectorAll('.side-card').forEach(x=>{
+    const hh=G.heroes.find(h2=>h2.id===x.dataset.hid);
+    x.classList.toggle('dead',!!(hh&&hh.dead));
+  });
+}
+function updateSidebarsVisible(){
+  if(!started||!IS_TOUCH){document.body.classList.remove('sidebars');return;}
+  const r=canvas.getBoundingClientRect();
+  const scale=Math.min(r.width/CFG.W,r.height/CFG.H);
+  const band=(r.width-CFG.W*scale)/2;
+  document.body.classList.toggle('sidebars',band>=58);
+}
 function cancelMode(){
   UIS.mode='none';UIS.buildType=null;UIS.tapArmed=false;
   if(G)G.targetMode=null;
-  document.querySelectorAll('#towerCards .card').forEach(x=>x.classList.remove('selected'));
+  syncBuildSelection();
   setCursorHint('');
 }
 function showTowerDetail(t){
@@ -561,6 +630,8 @@ function refreshCards(){
   }
   refreshHeroCards();
   refreshRelicCards();
+  refreshSideBars();
+  updateSidebarsVisible();
   if(UIS.selTower&&G.towers.includes(UIS.selTower)&&$('towerDetail').style.display==='block'){
     const up=$('btnUp');
     if(up)up.disabled=G.gold<towerUpCost(TOWER_BY[UIS.selTower.id],UIS.selTower.lvl);
@@ -649,12 +720,7 @@ function bindKeys(){
     }
     else if(ev.key>='1'&&ev.key<='9'){
       const def=TOWERS[+ev.key-1];
-      if(def){
-        UIS.mode='build';UIS.buildType=def.id;G.targetMode=null;
-        document.querySelectorAll('#towerCards .card').forEach(x=>x.classList.remove('selected'));
-        const el=$('tc-'+def.id);if(el)el.classList.add('selected');
-        setCursorHint('Click an empty tile to build '+def.name+' (Shift-click = several)');
-      }
+      if(def)selectBuildType(def);
     }
   });
 }
