@@ -160,7 +160,8 @@ for(const g of GROUPS){
     d.querySelector('.re').onclick=()=>forgeOne(j);
   }
 }
-function setSt(j,txt,cls){const s=document.querySelector('#s-'+j.file+' .st');s.textContent=txt;s.className='st '+(cls||'');s.title=txt;}
+function slotEl(j){return document.getElementById('s-'+j.file);}
+function setSt(j,txt,cls){const s=slotEl(j).querySelector('.st');s.textContent=txt;s.className='st '+(cls||'');s.title=txt;}
 function b64ToU8(b64){const bin=atob(b64);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
 async function downscale(u8,j){
   const blob=new Blob([u8],{type:'image/png'});
@@ -214,19 +215,19 @@ async function forgeOne(j){
   const key=$('key').value.trim();
   if(!key){setSt(j,'paste your key first','err');return;}
   setSt(j,'forging… (20–90s)');
-  document.querySelector('#s-'+j.file+' .re').style.display='none';
+  slotEl(j).querySelector('.re').style.display='none';
   try{
     const raw=await callAPI(j,key);
     const small=await downscale(raw,j);
     results[j.file]=small;
-    const img=document.querySelector('#s-'+j.file+' img');
+    const img=slotEl(j).querySelector('img');
     img.src=URL.createObjectURL(new Blob([small],{type:'image/png'}));
     img.style.display='block';
     setSt(j,'done — '+Math.round(small.length/1024)+' KB','ok');
   }catch(e){
     setSt(j,'failed: '+e.message,'err');
   }
-  document.querySelector('#s-'+j.file+' .re').style.display='inline-block';
+  slotEl(j).querySelector('.re').style.display='inline-block';
   updateProgress();
 }
 async function forgeMany(jobs){
